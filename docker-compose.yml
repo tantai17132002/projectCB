@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    ports:
+      - 5434:5432
+    environment:
+      POSTGRES_USER: projectcb_user
+      POSTGRES_PASSWORD: projectcb_password
+      POSTGRES_DB: projectcb_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
