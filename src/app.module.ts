@@ -7,6 +7,8 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './config/typeorm.config';
+import { AuthModule } from '@/modules/auth/auth.module';
+import { UserModule } from '@/modules/users/users.module';
 
 /**
  * AppModule - Module chính của ứng dụng NestJS
@@ -31,6 +33,12 @@ import { typeOrmConfig } from './config/typeorm.config';
       inject: [ConfigService], // Inject ConfigService vào factory function
       useFactory: typeOrmConfig, // Sử dụng hàm typeOrmConfig để tạo cấu hình
     }),
+
+    // Import AuthModule để sử dụng AuthService
+    AuthModule,
+
+    // Import UserModule để sử dụng UserService
+    UserModule,
   ],
 
   // Khai báo các controller (xử lý HTTP requests)
