@@ -79,29 +79,75 @@ export class UserService {
   }
 
   /**
-   * Tìm user theo username
+   * Tìm user theo username (bao gồm password) - chỉ dùng cho xác thực
    *
    * @param username - Tên đăng nhập cần tìm
-   * @returns Promise<Omit<UsersEntity, 'password'> | null> - User nếu tìm thấy (không có password), null nếu không
+   * @returns Promise<UsersEntity | null> - User nếu tìm thấy (bao gồm password), null nếu không
    *
    * @example
    * const user = await userService.findByUsername("john_doe");
    * if (user) {
-   *   console.log("Tìm thấy user:", user.email);
+   *   // Có thể truy cập user.password để so sánh
    * }
    */
-  async findByUsername(username: string): Promise<Omit<UsersEntity, 'password'> | null> {
+  async findByUsername(username: string): Promise<UsersEntity | null> {
     try {
-      // Tìm user trong database theo username
+      // Tìm user trong database theo username (bao gồm password)
       const user = await this.usersRepository.findOne({ where: { username } });
-      
-      if (!user) {
-        return null;
-      }
+      return user;
+    } catch (error) {
+      throw new HttpException(
+        'Failed to find user',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 
-      // Loại bỏ password khỏi response để bảo mật
-      const { password: _, ...userWithoutPassword } = user;
-      return userWithoutPassword;
+  /**
+   * Tìm user theo email (bao gồm password) - chỉ dùng cho xác thực
+   *
+   * @param email - Email cần tìm
+   * @returns Promise<UsersEntity | null> - User nếu tìm thấy (bao gồm password), null nếu không
+   *
+   * @example
+   * const user = await userService.findByEmail("john@example.com");
+   * if (user) {
+   *   // Có thể truy cập user.password để so sánh
+   * }
+   */
+  async findByEmail(email: string): Promise<UsersEntity | null> {
+    try {
+      // Tìm user trong database theo email (bao gồm password)
+      const user = await this.usersRepository.findOne({ where: { email } });
+      return user;
+    } catch (error) {
+      throw new HttpException(
+        'Failed to find user',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Tìm user theo username hoặc email (bao gồm password) - chỉ dùng cho xác thực
+   *
+   * @param usernameOrEmail - Username hoặc email cần tìm
+   * @returns Promise<UsersEntity | null> - User nếu tìm thấy (bao gồm password), null nếu không
+   *
+   * @example
+   * const user = await userService.findByUsernameOrEmail("john_doe");
+   * const user2 = await userService.findByUsernameOrEmail("john@example.com");
+   */
+  async findByUsernameOrEmail(usernameOrEmail: string): Promise<UsersEntity | null> {
+    try {
+      // Tìm user trong database theo username hoặc email (bao gồm password)
+      const user = await this.usersRepository.findOne({
+        where: [
+          { username: usernameOrEmail },
+          { email: usernameOrEmail }
+        ]
+      });
+      return user;
     } catch (error) {
       throw new HttpException(
         'Failed to find user',
