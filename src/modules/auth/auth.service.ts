@@ -1,8 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, HttpException, HttpStatus } from '@nestjs/common';
 import { UserService } from '@/modules/users/users.service';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { UsersEntity } from '@/modules/users/entity/users.entity';
+import { CreateUsersDto } from '@/modules/users/dto/create-users.dto';
+import { RegisterResponseDto, LoginResponseDto } from '@/modules/auth/dto/auth-response.dto';
+import { LoginDto } from '@/modules/auth/dto/login.dto';
 
 /**
  * AuthService - Service xử lý xác thực và phân quyền
@@ -54,7 +57,7 @@ export class AuthService {
    * const result = await authService.login(user);
    * console.log(result.access_token); // JWT token
    */
-  async login(user: UsersEntity) {
+  async login(user: UsersEntity): Promise<LoginResponseDto> {
     // Tạo payload cho JWT token (thông tin sẽ được mã hóa trong token)
     const payload = {
       sub: user.id, // Subject - ID của user
@@ -66,5 +69,58 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
     };
+  }
+
+  /**
+   * Xử lý đăng nhập user
+   *
+   * @param loginDto - Dữ liệu đăng nhập từ request body
+   * @returns LoginResponseDto - JWT access token
+   * @throws UnauthorizedException - Nếu thông tin đăng nhập không chính xác
+   */
+  async processLogin(loginDto: LoginDto): Promise<LoginResponseDto> {
+    // Xác thực user bằng username/email và password
+    const user = await this.validateUser(
+      loginDto.usernameOrEmail,
+      loginDto.password,
+    );
+    
+    // Tạo JWT token và trả về cho client
+    return this.login(user);
+  }
+
+  /**
+   * Đăng ký user mới
+   *
+   * @param createUserDto - Dữ liệu user từ request body
+   * @returns RegisterResponseDto - Thông tin user đã tạo và message thành công
+   * @throws HttpException - Nếu có lỗi xảy ra
+   */
+  async register(createUserDto: CreateUsersDto): Promise<RegisterResponseDto> {
+    try {
+      // Gọi service để tạo user mới với mật khẩu đã mã hóa
+      const user = await this.usersService.createUser(createUserDto);
+
+      // Trả về response thành công với thông tin user
+      return {
+        message: 'User registered successfully',
+        user,
+      };
+    } catch (error) {
+      // Xử lý lỗi nhân bản username/email
+      if (error.code === '23505') {
+        // Lỗi ràng buộc duy nhất của PostgreSQL
+        throw new HttpException(
+          'Username or email already exists',
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      // Xử lý các lỗi khác
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

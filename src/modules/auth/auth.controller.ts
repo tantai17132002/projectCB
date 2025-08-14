@@ -3,10 +3,7 @@ import {
   Body,
   Controller,
   Post,
-  HttpException,
-  HttpStatus,
   Get,
-  Request,
   UseGuards,
 } from '@nestjs/common';
 import { CreateUsersDto } from '@/modules/users/dto/create-users.dto';
@@ -22,6 +19,11 @@ import {
   ApiBearerAuth,
   ApiBody 
 } from '@nestjs/swagger';
+import { 
+  RegisterResponseDto, 
+  LoginResponseDto, 
+  UserResponseDto 
+} from '@/modules/auth/dto/auth-response.dto';
 
 // import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
 /**
@@ -75,51 +77,12 @@ export class AuthController {
   @ApiResponse({ 
     status: 201, 
     description: 'User registered successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'User registered successfully' },
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'number', example: 1 },
-            username: { type: 'string', example: 'john_doe' },
-            email: { type: 'string', example: 'john@example.com' },
-            role: { type: 'string', example: 'user' }
-          }
-        }
-      }
-    }
+    type: RegisterResponseDto
   })
   @ApiResponse({ status: 409, description: 'Username or email already exists' })
   @Post('register')
   async register(@Body() createUserDto: CreateUsersDto) {
-    try {
-      // Gọi service để tạo user mới với mật khẩu đã mã hóa
-      const user = await this.userService.createUser(createUserDto);
-
-      // Trả về response thành công với thông tin user
-      // Lưu ý: password sẽ không được trả về do @Exclude() trong entity
-      return {
-        message: 'User registered successfully',
-        user,
-      };
-    } catch (error) {
-      // Xử lý lỗi nhân bản username/email
-      if (error.code === '23505') {
-        // Lỗi ràng buộc duy nhất của PostgreSQL
-        throw new HttpException(
-          'Username or email already exists',
-          HttpStatus.CONFLICT,
-        );
-      }
-
-      // Xử lý các lỗi khác
-      throw new HttpException(
-        'Internal server error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return this.authService.register(createUserDto);
   }
 
   /**
@@ -147,32 +110,17 @@ export class AuthController {
    *   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
    * }
    */
-  @ApiOperation({ summary: 'Đăng nhập user' })
+  @ApiOperation({ summary: 'Login user' })
   @ApiBody({ type: LoginDto })
   @ApiResponse({ 
     status: 200, 
-    description: 'Đăng nhập thành công',
-    schema: {
-      type: 'object',
-      properties: {
-        access_token: { 
-          type: 'string', 
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoiam9obl9kb2UiLCJyb2xlIjoidXNlciIsImlhdCI6MTYzNjQ5NjAwMCwiZXhwIjoxNjM2NTgyNDAwfQ.example' 
-        }
-      }
-    }
+    description: 'Login successfully',
+    type: LoginResponseDto
   })
-  @ApiResponse({ status: 401, description: 'Thông tin đăng nhập không chính xác' })
+  @ApiResponse({ status: 401, description: 'Login failed' })
   @Post('login')
   async login(@Body() dto: LoginDto) {
-    // Xác thực user bằng username/email và password
-    const user = await this.authService.validateUser(
-      dto.usernameOrEmail,
-      dto.password,
-    );
-    
-    // Tạo JWT token và trả về cho client
-    return this.authService.login(user);
+    return this.authService.processLogin(dto);
   }
 
   /**
@@ -197,15 +145,7 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Current user information',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'number', example: 1 },
-        username: { type: 'string', example: 'john_doe' },
-        email: { type: 'string', example: 'john@example.com' },
-        role: { type: 'string', example: 'user' }
-      }
-    }
+    type: UserResponseDto
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @UseGuards(JwtAuthGuard) // Bảo vệ endpoint bằng JWT authentication
