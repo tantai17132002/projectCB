@@ -9,12 +9,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './config/typeorm.config';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { UserModule } from '@/modules/users/users.module';
-
+import { TodosModule } from './modules/todos/todos.module';
 /**
  * AppModule - Module chính của ứng dụng NestJS
- * 
+ *
  * Đây là module gốc, chứa tất cả các module khác và cấu hình chung
- * 
+ *
  * @description
  * - Cấu hình ConfigModule để đọc biến môi trường
  * - Cấu hình TypeORM để kết nối database
@@ -39,6 +39,9 @@ import { UserModule } from '@/modules/users/users.module';
 
     // Import UserModule để sử dụng UserService
     UserModule,
+
+    // Import TodosModule để sử dụng TodosService
+    TodosModule,
   ],
 
   // Khai báo các controller (xử lý HTTP requests)
