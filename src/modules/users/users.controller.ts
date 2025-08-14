@@ -31,35 +31,35 @@ export class UserController {
    *   }
    * }
    */
-  @Get(':username')
-  async findByUsername(@Param('username') username: string) {
-    try {
-      // Gọi service để tìm user theo username
-      const user = await this.userService.findByUsername(username);
+  // @Get(':username')
+  // async findByUsername(@Param('username') username: string) {
+  //   try {
+  //     // Gọi service để tìm user theo username
+  //     const user = await this.userService.findByUsername(username);
       
-      if (!user) {
-        throw new HttpException(
-          `User with username '${username}' not found`,
-          HttpStatus.NOT_FOUND
-        );
-      }
+  //     if (!user) {
+  //       throw new HttpException(
+  //         `User with username '${username}' not found`,
+  //         HttpStatus.NOT_FOUND
+  //       );
+  //     }
 
-      // Trả về thông tin user (không có password)
-      return {
-        message: 'User found successfully',
-        user
-      };
-    } catch (error) {
-      // Re-throw HttpException nếu đã có
-      if (error instanceof HttpException) {
-        throw error;
-      }
+  //     // Trả về thông tin user (không có password)
+  //     return {
+  //       message: 'User found successfully',
+  //       user
+  //     };
+  //   } catch (error) {
+  //     // Re-throw HttpException nếu đã có
+  //     if (error instanceof HttpException) {
+  //       throw error;
+  //     }
       
-      // Xử lý lỗi khác
-      throw new HttpException(
-        'Failed to find user',
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
+  //     // Xử lý lỗi khác
+  //     throw new HttpException(
+  //       'Failed to find user',
+  //       HttpStatus.INTERNAL_SERVER_ERROR
+  //     );
+  //   }
+  // }
 }
