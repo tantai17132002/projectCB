@@ -1,65 +1,88 @@
-import { Controller, Get, Param, HttpException, HttpStatus } from '@nestjs/common';
-import { UserService } from './users.service';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
+import { UserService } from '@/modules/users/users.service';
+import { Auth } from '@/common/decorators/auth.decorator';
+import { SelfOrAdminGuard } from '@/common/guards/self-or-admin.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { UpdateRoleDto } from '@/modules/users/dto/update-role.dto';
 
 /**
  * UserController - Controller xử lý các request liên quan đến user
- * 
+ *
  * Controller này chứa các endpoint để:
- * - Tìm user theo username
  * - Quản lý thông tin user
+ * - Cập nhật role của user
+ *
+ * Các endpoint được bảo vệ bởi:
+ * - JWT Authentication (thông qua @Auth decorator)
+ * - Role-based Authorization (admin/user)
+ * - Self-or-Admin Authorization (chỉ admin hoặc chính chủ mới truy cập được)
  */
-@Controller('users')
+@ApiTags('users') // Nhóm các API user trong Swagger docs
+@ApiBearerAuth() // Thêm Bearer token vào Swagger docs
+@Controller('users') // Base route: /users
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   /**
-   * Endpoint tìm user theo username
-   * 
-   * @param username - Username cần tìm (từ URL parameter)
-   * @returns Object chứa thông tin user (không có password)
-   * 
-   * @example
-   * // Request: GET /users/TNTT
-   * // Response:
-   * {
-   *   "message": "User found successfully",
-   *   "user": {
-   *     "id": 1,
-   *     "username": "TNTT",
-   *     "email": "tntt@example.com",
-   *     "role": "user"
-   *   }
-   * }
+   * GET /users - Lấy danh sách tất cả users
+   *
+   * Chỉ ADMIN mới có quyền truy cập endpoint này
+   * @Auth('admin') - Yêu cầu JWT + role admin
+   *
+   * @returns Promise<UsersEntity[]> - Danh sách tất cả users
    */
-  // @Get(':username')
-  // async findByUsername(@Param('username') username: string) {
-  //   try {
-  //     // Gọi service để tìm user theo username
-  //     const user = await this.userService.findByUsername(username);
-      
-  //     if (!user) {
-  //       throw new HttpException(
-  //         `User with username '${username}' not found`,
-  //         HttpStatus.NOT_FOUND
-  //       );
-  //     }
+  @Auth('admin') // Chỉ admin mới có quyền xem danh sách toàn bộ user
+  @Get()
+  findAll() {
+    return this.userService.findAll();
+  }
 
-  //     // Trả về thông tin user (không có password)
-  //     return {
-  //       message: 'User found successfully',
-  //       user
-  //     };
-  //   } catch (error) {
-  //     // Re-throw HttpException nếu đã có
-  //     if (error instanceof HttpException) {
-  //       throw error;
-  //     }
-      
-  //     // Xử lý lỗi khác
-  //     throw new HttpException(
-  //       'Failed to find user',
-  //       HttpStatus.INTERNAL_SERVER_ERROR
-  //     );
-  //   }
-  // }
+  /**
+   * GET /users/:id - Lấy thông tin một user cụ thể
+   *
+   * Quyền truy cập:
+   * - ADMIN: có thể xem thông tin bất kỳ user nào
+   * - USER: chỉ có thể xem thông tin của chính mình
+   *
+   * @param id - ID của user cần xem (từ URL params)
+   * @returns Promise<UsersEntity> - Thông tin user
+   */
+  @Auth() // Cần JWT authentication trước
+  @UseGuards(RolesGuard, SelfOrAdminGuard) // Sau đó kiểm tra role và self-or-admin
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    // ParseIntPipe - Tự động chuyển đổi string thành number và validate
+    return this.userService.findById(id);
+  }
+
+  /**
+   * PATCH /users/:id/role - Cập nhật role của user
+   *
+   * Chỉ ADMIN mới có quyền thay đổi role của user khác
+   *
+   * @param id - ID của user cần thay đổi role
+   * @param dto - DTO chứa role mới (UpdateRoleDto)
+   * @returns Promise<UsersEntity> - User đã được cập nhật role
+   *
+   * @example
+   * PATCH /users/123/role
+   * Body: { "role": "admin" }
+   */
+  @Auth('admin') // Chỉ admin mới có quyền đổi role user
+  @Patch(':id/role')
+  updateRole(
+    @Param('id', ParseIntPipe) id: number, // ID từ URL params
+    @Body() dto: UpdateRoleDto, // Role mới từ request body
+  ) {
+    return this.userService.updateRole(id, dto);
+  }
 }
