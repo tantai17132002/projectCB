@@ -5,12 +5,7 @@ import { TodoEntity } from '@/modules/todos/entities/todo.entity';
 import { CreateTodoDto } from '@/modules/todos/dto/create-todo.dto';
 import { UpdateTodoDto } from '@/modules/todos/dto/update-todo.dto';
 import { QueryTodoDto } from '@/modules/todos/dto/query-todo.dto';
-
-/**
- * Kiểu dữ liệu cho user từ JWT token
- * Chứa thông tin id, username và role của user đang đăng nhập
- */
-type JwtUser = { id: number; username: string; role: 'user'|'admin' };
+import type { JwtUser } from '@/common/types';
 
 /**
  * Service xử lý logic nghiệp vụ cho module Todos

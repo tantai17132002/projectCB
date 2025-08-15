@@ -24,6 +24,7 @@ import {
   LoginResponseDto, 
   UserResponseDto 
 } from '@/modules/auth/dto/auth-response.dto';
+import type { JwtUser } from '@/common/types';
 
 // import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
 /**
@@ -150,7 +151,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @UseGuards(JwtAuthGuard) // Bảo vệ endpoint bằng JWT authentication
   @Get('me')
-  getMe(@CurrentUser() user: any) {
+  getMe(@CurrentUser() user: JwtUser) {
     // Trả về thông tin user từ JWT token
     return user;
   }

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import type { JwtPayload, JwtUser } from '@/common/types';
 
 /**
  * JwtStrategy - Chiến lược xác thực bằng JWT Token
@@ -36,7 +37,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * // Method này sẽ được tự động gọi để validate token
    * // Và trả về user object cho request
    */
-  async validate(payload: any) {
+  async validate(payload: JwtPayload): Promise<JwtUser> {
     // Trả về object chứa thông tin user từ JWT payload
     // Object này sẽ được inject vào request.user
     return {
