@@ -6,11 +6,31 @@ services:
     ports:
       - 5434:5432
     environment:
-      POSTGRES_USER: projectcb_user
-      POSTGRES_PASSWORD: projectcb_password
-      POSTGRES_DB: projectcb_db
+      # POSTGRES_USER: projectcb_user
+      # POSTGRES_PASSWORD: projectcb_password
+      # POSTGRES_DB: projectcb_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  seed-admin:
+    image: node:20-alpine  
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: sh -c "npm install && npx ts-node --require tsconfig-paths/register scripts/create-admin.ts"
+    depends_on:
+      - postgres
+    environment:
+      DB_HOST: ${DB_HOSTAD}
+      DB_PORT: ${DB_PORTAD}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
 volumes:
   pgdata:
