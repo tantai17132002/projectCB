@@ -21,9 +21,15 @@ import {
 } from '@nestjs/swagger';
 import { 
   RegisterResponseDto, 
-  LoginResponseDto, 
-  UserResponseDto 
+  LoginResponseDto
 } from '@/modules/auth/dto/auth-response.dto';
+import { UserResponseDto } from '@/modules/users/dto/user-response.dto';
+import { 
+  ErrorResponseDto,
+  ValidationErrorResponseDto,
+  UnauthorizedErrorResponseDto,
+  ForbiddenErrorResponseDto
+} from '@/common/dto/error-response.dto';
 import type { JwtUser } from '@/common/types';
 
 // import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
@@ -80,7 +86,16 @@ export class AuthController {
     description: 'User registered successfully',
     type: RegisterResponseDto
   })
-  @ApiResponse({ status: 409, description: 'Username or email already exists' })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Bad request - Invalid input data',
+    type: ValidationErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 409, 
+    description: 'Username or email already exists',
+    type: ErrorResponseDto
+  })
   @Post('register')
   async register(@Body() createUserDto: CreateUsersDto) {
     return this.authService.register(createUserDto);
@@ -118,7 +133,16 @@ export class AuthController {
     description: 'Login successfully',
     type: LoginResponseDto
   })
-  @ApiResponse({ status: 401, description: 'Login failed' })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Bad request - Invalid input data',
+    type: ValidationErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Login failed',
+    type: UnauthorizedErrorResponseDto
+  })
   @Post('login')
   async login(@Body() dto: LoginDto) {
     return this.authService.processLogin(dto);
@@ -148,7 +172,11 @@ export class AuthController {
     description: 'Current user information',
     type: UserResponseDto
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
   @UseGuards(JwtAuthGuard) // Bảo vệ endpoint bằng JWT authentication
   @Get('me')
   getMe(@CurrentUser() user: JwtUser) {

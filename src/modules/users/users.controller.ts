@@ -11,8 +11,26 @@ import { UserService } from '@/modules/users/users.service';
 import { Auth } from '@/common/decorators/auth.decorator';
 import { SelfOrAdminGuard } from '@/common/guards/self-or-admin.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { 
+  ApiBearerAuth, 
+  ApiTags, 
+  ApiOperation, 
+  ApiResponse, 
+  ApiParam,
+  ApiBody 
+} from '@nestjs/swagger';
 import { UpdateRoleDto } from '@/modules/users/dto/update-role.dto';
+import { 
+  UserResponseDto,
+  UserListResponseDto
+} from '@/modules/users/dto/user-response.dto';
+import { 
+  ErrorResponseDto,
+  ValidationErrorResponseDto,
+  UnauthorizedErrorResponseDto,
+  ForbiddenErrorResponseDto,
+  NotFoundErrorResponseDto
+} from '@/common/dto/error-response.dto';
 
 /**
  * UserController - Controller xử lý các request liên quan đến user
@@ -40,6 +58,22 @@ export class UserController {
    *
    * @returns Promise<UsersEntity[]> - Danh sách tất cả users
    */
+  @ApiOperation({ summary: 'Get all users (Admin only)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Users retrieved successfully',
+    type: UserListResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Admin access required',
+    type: ForbiddenErrorResponseDto
+  })
   @Auth('admin') // Chỉ admin mới có quyền xem danh sách toàn bộ user
   @Get()
   findAll() {
@@ -56,6 +90,28 @@ export class UserController {
    * @param id - ID của user cần xem (từ URL params)
    * @returns Promise<UsersEntity> - Thông tin user
    */
+  @ApiOperation({ summary: 'Get user by ID (Self or Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', example: 1 })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User retrieved successfully',
+    type: UserResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Access denied',
+    type: ForbiddenErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'User not found',
+    type: NotFoundErrorResponseDto
+  })
   @Auth() // Cần JWT authentication trước
   @UseGuards(RolesGuard, SelfOrAdminGuard) // Sau đó kiểm tra role và self-or-admin
   @Get(':id')
@@ -77,6 +133,34 @@ export class UserController {
    * PATCH /users/123/role
    * Body: { "role": "admin" }
    */
+  @ApiOperation({ summary: 'Update user role (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', example: 1 })
+  @ApiBody({ type: UpdateRoleDto })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User role updated successfully',
+    type: UserResponseDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Bad request - Invalid role',
+    type: ValidationErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Admin access required',
+    type: ForbiddenErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'User not found',
+    type: NotFoundErrorResponseDto
+  })
   @Auth('admin') // Chỉ admin mới có quyền đổi role user
   @Patch(':id/role')
   updateRole(

@@ -1,14 +1,12 @@
 import {
   Injectable,
-  HttpException,
-  HttpStatus,
   NotFoundException,
   Logger,
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UsersEntity } from '@/modules/users/entity/users.entity';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { CreateUsersDto } from '@/modules/users/dto/create-users.dto';
 import * as bcrypt from 'bcryptjs'; // Thư viện để mã hóa mật khẩu
 import { UpdateRoleDto } from '@/modules/users/dto/update-role.dto';
@@ -37,6 +35,8 @@ export class UserService {
     // Repository pattern của TypeORM
     @InjectRepository(UsersEntity)
     private usersRepository: Repository<UsersEntity>,
+    // Inject DataSource để sử dụng transactions
+    private dataSource: DataSource,
   ) {}
 
   /**
@@ -101,11 +101,8 @@ export class UserService {
       }
 
       this.logger.error(`Failed to create user: ${error.message}`, error.stack);
-      // Xử lý lỗi database
-      throw new HttpException(
-        'Failed to create user',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // ExceptionFilter sẽ tự động xử lý lỗi
+      throw error;
     }
   }
 
@@ -134,10 +131,8 @@ export class UserService {
         `Failed to find user by username: ${error.message}`,
         error.stack,
       );
-      throw new HttpException(
-        'Failed to find user',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // ExceptionFilter sẽ tự động xử lý lỗi
+      throw error;
     }
   }
 
@@ -166,10 +161,8 @@ export class UserService {
         `Failed to find user by email: ${error.message}`,
         error.stack,
       );
-      throw new HttpException(
-        'Failed to find user',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // ExceptionFilter sẽ tự động xử lý lỗi
+      throw error;
     }
   }
 
@@ -201,10 +194,8 @@ export class UserService {
         `Failed to find user by username or email: ${error.message}`,
         error.stack,
       );
-      throw new HttpException(
-        'Failed to find user',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // ExceptionFilter sẽ tự động xử lý lỗi
+      throw error;
     }
   }
 
@@ -229,10 +220,8 @@ export class UserService {
         `Failed to retrieve users: ${error.message}`,
         error.stack,
       );
-      throw new HttpException(
-        'Failed to retrieve users',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // ExceptionFilter sẽ tự động xử lý lỗi
+      throw error;
     }
   }
 
@@ -279,10 +268,8 @@ export class UserService {
         `Failed to find user by ID: ${error.message}`,
         error.stack,
       );
-      throw new HttpException(
-        'Failed to find user',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // ExceptionFilter sẽ tự động xử lý lỗi
+      throw error;
     }
   }
 
@@ -302,6 +289,11 @@ export class UserService {
    * const updatedUser = await userService.updateRole(123, { role: 'admin' });
    */
   async updateRole(id: number, dto: UpdateRoleDto): Promise<UsersEntity> {
+    // Sử dụng transaction để đảm bảo tính nhất quán của dữ liệu
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
       this.logger.debug(`Updating role for user ${id} to ${dto.role}`);
 
@@ -311,7 +303,7 @@ export class UserService {
       // Kiểm tra xem có đang downgrade admin cuối cùng không
       // Business rule: Không được để hệ thống không có admin nào
       if (user.role === ADMIN_ROLE && dto.role !== ADMIN_ROLE) {
-        const adminCount = await this.usersRepository.count({
+        const adminCount = await queryRunner.manager.count(UsersEntity, {
           where: { role: ADMIN_ROLE },
         });
         if (adminCount <= 1) {
@@ -323,8 +315,11 @@ export class UserService {
       // Cập nhật role mới
       user.role = dto.role;
 
-      // Lưu thay đổi vào database và trả về user đã cập nhật
-      const updatedUser = await this.usersRepository.save(user);
+      // Lưu thay đổi vào database trong transaction
+      const updatedUser = await queryRunner.manager.save(UsersEntity, user);
+
+      // Commit transaction
+      await queryRunner.commitTransaction();
 
       // Cập nhật cache với thông tin mới
       this.cache.set(id, updatedUser);
@@ -332,6 +327,9 @@ export class UserService {
       this.logger.log(`Role updated successfully for user ${id}: ${dto.role}`);
       return updatedUser;
     } catch (error) {
+      // Rollback transaction nếu có lỗi
+      await queryRunner.rollbackTransaction();
+      
       // Re-throw specific exceptions
       if (
         error instanceof NotFoundException ||
@@ -340,10 +338,11 @@ export class UserService {
         throw error;
       }
       this.logger.error(`Failed to update role: ${error.message}`, error.stack);
-      throw new HttpException(
-        'Failed to update user role',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // ExceptionFilter sẽ tự động xử lý lỗi
+      throw error;
+    } finally {
+      // Đảm bảo release query runner
+      await queryRunner.release();
     }
   }
 

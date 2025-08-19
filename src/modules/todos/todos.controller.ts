@@ -16,12 +16,34 @@ import { UpdateTodoDto } from '@/modules/todos/dto/update-todo.dto';
 import { QueryTodoDto } from '@/modules/todos/dto/query-todo.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import {
+  TodoResponseDto,
+  TodoListResponseDto,
+} from '@/modules/todos/dto/todo-response.dto';
+import { 
+  ErrorResponseDto,
+  ValidationErrorResponseDto,
+  UnauthorizedErrorResponseDto,
+  ForbiddenErrorResponseDto,
+  NotFoundErrorResponseDto
+} from '@/common/dto/error-response.dto';
 import type { JwtUser } from '@/common/types';
 
 /**
  * Controller xử lý các HTTP requests cho module Todos
  * Tất cả endpoints đều yêu cầu xác thực JWT
  */
+@ApiTags('Todos')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard) // Bảo vệ tất cả endpoints bằng JWT authentication
 @Controller('todos') // Base route: /todos
 export class TodosController {
@@ -34,6 +56,23 @@ export class TodosController {
    * @param dto - Dữ liệu để tạo todo (từ request body)
    * @returns Todo đã được tạo
    */
+  @ApiOperation({ summary: 'Create a new todo' })
+  @ApiBody({ type: CreateTodoDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Todo created successfully',
+    type: TodoResponseDto,
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Bad request - Invalid input data',
+    type: ValidationErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
   @Post()
   create(@CurrentUser() user: JwtUser, @Body() dto: CreateTodoDto) {
     return this.todosService.createTodo(user, dto);
@@ -48,6 +87,18 @@ export class TodosController {
    *
    * Ví dụ: GET /todos?page=2&limit=10&isDone=true
    */
+  @ApiOperation({ summary: 'Get all todos with pagination and filtering' })
+  @ApiQuery({ type: QueryTodoDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Todos retrieved successfully',
+    type: TodoListResponseDto,
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
   @Get()
   findAll(@CurrentUser() user: JwtUser, @Query() query: QueryTodoDto) {
     return this.todosService.findAllTodos(user, query);
@@ -64,6 +115,28 @@ export class TodosController {
    *
    * Ví dụ: GET /todos/123
    */
+  @ApiOperation({ summary: 'Get a specific todo by ID' })
+  @ApiParam({ name: 'id', description: 'Todo ID', example: 1 })
+  @ApiResponse({
+    status: 200,
+    description: 'Todo retrieved successfully',
+    type: TodoResponseDto,
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Access denied',
+    type: ForbiddenErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Todo not found',
+    type: NotFoundErrorResponseDto
+  })
   @Get(':id')
   findOne(@CurrentUser() user: JwtUser, @Param('id', ParseIntPipe) id: number) {
     return this.todosService.findOneTodo(id, user);
@@ -81,6 +154,34 @@ export class TodosController {
    *
    * Ví dụ: PATCH /todos/123 với body: { "title": "New title", "isDone": true }
    */
+  @ApiOperation({ summary: 'Update a todo' })
+  @ApiParam({ name: 'id', description: 'Todo ID', example: 1 })
+  @ApiBody({ type: UpdateTodoDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Todo updated successfully',
+    type: TodoResponseDto,
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Bad request - Invalid input data',
+    type: ValidationErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Access denied',
+    type: ForbiddenErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Todo not found',
+    type: NotFoundErrorResponseDto
+  })
   @Patch(':id')
   update(
     @CurrentUser() user: JwtUser,
@@ -101,6 +202,28 @@ export class TodosController {
    *
    * Ví dụ: DELETE /todos/123
    */
+  @ApiOperation({ summary: 'Delete a todo' })
+  @ApiParam({ name: 'id', description: 'Todo ID', example: 1 })
+  @ApiResponse({
+    status: 200,
+    description: 'Todo deleted successfully',
+    type: TodoResponseDto,
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Access denied',
+    type: ForbiddenErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Todo not found',
+    type: NotFoundErrorResponseDto
+  })
   @Delete(':id')
   remove(@CurrentUser() user: JwtUser, @Param('id', ParseIntPipe) id: number) {
     return this.todosService.removeTodo(id, user);

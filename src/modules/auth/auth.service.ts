@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '@/modules/users/users.service';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
@@ -107,20 +107,8 @@ export class AuthService {
         user,
       };
     } catch (error) {
-      // Xử lý lỗi nhân bản username/email
-      if (error.code === '23505') {
-        // Lỗi ràng buộc duy nhất của PostgreSQL
-        throw new HttpException(
-          'Username or email already exists',
-          HttpStatus.CONFLICT,
-        );
-      }
-
-      // Xử lý các lỗi khác
-      throw new HttpException(
-        'Internal server error',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // ExceptionFilter sẽ tự động xử lý tất cả các lỗi
+      throw error;
     }
   }
 }
