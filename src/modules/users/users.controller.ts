@@ -6,13 +6,37 @@ import {
   Patch,
   Body,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { UserService } from '@/modules/users/users.service';
 import { Auth } from '@/common/decorators/auth.decorator';
 import { SelfOrAdminGuard } from '@/common/guards/self-or-admin.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { 
+  ApiBearerAuth, 
+  ApiTags, 
+  ApiOperation, 
+  ApiResponse, 
+  ApiParam,
+  ApiBody,
+  ApiQuery
+} from '@nestjs/swagger';
 import { UpdateRoleDto } from '@/modules/users/dto/update-role.dto';
+import { QueryUserDto } from '@/modules/users/dto/query-user.dto';
+import { 
+  UserResponseDto,
+  UserListResponseDto
+} from '@/modules/users/dto/user-response.dto';
+import {
+  UserPaginationResponseDto,
+} from '@/modules/users/dto/user-pagination-response.dto';
+import { 
+  ErrorResponseDto,
+  ValidationErrorResponseDto,
+  UnauthorizedErrorResponseDto,
+  ForbiddenErrorResponseDto,
+  NotFoundErrorResponseDto
+} from '@/common/dto/error-response.dto';
 
 /**
  * UserController - Controller xử lý các request liên quan đến user
@@ -33,17 +57,57 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   /**
-   * GET /users - Lấy danh sách tất cả users
+   * GET /users - Lấy danh sách users với pagination
    *
    * Chỉ ADMIN mới có quyền truy cập endpoint này
-   * @Auth('admin') - Yêu cầu JWT + role admin
+   * Hỗ trợ pagination để tối ưu performance khi có nhiều users
+   * 
+   * @param query - Query parameters với pagination (page, limit)
+   * @returns Promise<Object> - Danh sách users và metadata pagination
    *
-   * @returns Promise<UsersEntity[]> - Danh sách tất cả users
+   * @example
+   * GET /users?page=1&limit=10
    */
+  @ApiOperation({ 
+    summary: 'Get all users with pagination (Admin only)',
+    description: 'Retrieve users with pagination support. Only admins can access this endpoint.'
+  })
+  @ApiQuery({ 
+    name: 'page', 
+    description: 'Page number (min: 1)',
+    example: 1,
+    required: false
+  })
+  @ApiQuery({ 
+    name: 'limit', 
+    description: 'Items per page (min: 1, max: 100)',
+    example: 10,
+    required: false
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Users retrieved successfully with pagination',
+    type: UserPaginationResponseDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Bad request - Invalid query parameters',
+    type: ValidationErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Admin access required',
+    type: ForbiddenErrorResponseDto
+  })
   @Auth('admin') // Chỉ admin mới có quyền xem danh sách toàn bộ user
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() query: QueryUserDto) {
+    return this.userService.findAll(query);
   }
 
   /**
@@ -56,6 +120,28 @@ export class UserController {
    * @param id - ID của user cần xem (từ URL params)
    * @returns Promise<UsersEntity> - Thông tin user
    */
+  @ApiOperation({ summary: 'Get user by ID (Self or Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', example: 1 })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User retrieved successfully',
+    type: UserResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Access denied',
+    type: ForbiddenErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'User not found',
+    type: NotFoundErrorResponseDto
+  })
   @Auth() // Cần JWT authentication trước
   @UseGuards(RolesGuard, SelfOrAdminGuard) // Sau đó kiểm tra role và self-or-admin
   @Get(':id')
@@ -77,6 +163,34 @@ export class UserController {
    * PATCH /users/123/role
    * Body: { "role": "admin" }
    */
+  @ApiOperation({ summary: 'Update user role (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', example: 1 })
+  @ApiBody({ type: UpdateRoleDto })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User role updated successfully',
+    type: UserResponseDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Bad request - Invalid role',
+    type: ValidationErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized',
+    type: UnauthorizedErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Admin access required',
+    type: ForbiddenErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'User not found',
+    type: NotFoundErrorResponseDto
+  })
   @Auth('admin') // Chỉ admin mới có quyền đổi role user
   @Patch(':id/role')
   updateRole(
