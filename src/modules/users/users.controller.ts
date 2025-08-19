@@ -6,6 +6,7 @@ import {
   Patch,
   Body,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { UserService } from '@/modules/users/users.service';
 import { Auth } from '@/common/decorators/auth.decorator';
@@ -17,13 +18,18 @@ import {
   ApiOperation, 
   ApiResponse, 
   ApiParam,
-  ApiBody 
+  ApiBody,
+  ApiQuery
 } from '@nestjs/swagger';
 import { UpdateRoleDto } from '@/modules/users/dto/update-role.dto';
+import { QueryUserDto } from '@/modules/users/dto/query-user.dto';
 import { 
   UserResponseDto,
   UserListResponseDto
 } from '@/modules/users/dto/user-response.dto';
+import {
+  UserPaginationResponseDto,
+} from '@/modules/users/dto/user-pagination-response.dto';
 import { 
   ErrorResponseDto,
   ValidationErrorResponseDto,
@@ -51,18 +57,42 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   /**
-   * GET /users - Lấy danh sách tất cả users
+   * GET /users - Lấy danh sách users với pagination
    *
    * Chỉ ADMIN mới có quyền truy cập endpoint này
-   * @Auth('admin') - Yêu cầu JWT + role admin
+   * Hỗ trợ pagination để tối ưu performance khi có nhiều users
+   * 
+   * @param query - Query parameters với pagination (page, limit)
+   * @returns Promise<Object> - Danh sách users và metadata pagination
    *
-   * @returns Promise<UsersEntity[]> - Danh sách tất cả users
+   * @example
+   * GET /users?page=1&limit=10
    */
-  @ApiOperation({ summary: 'Get all users (Admin only)' })
+  @ApiOperation({ 
+    summary: 'Get all users with pagination (Admin only)',
+    description: 'Retrieve users with pagination support. Only admins can access this endpoint.'
+  })
+  @ApiQuery({ 
+    name: 'page', 
+    description: 'Page number (min: 1)',
+    example: 1,
+    required: false
+  })
+  @ApiQuery({ 
+    name: 'limit', 
+    description: 'Items per page (min: 1, max: 100)',
+    example: 10,
+    required: false
+  })
   @ApiResponse({ 
     status: 200, 
-    description: 'Users retrieved successfully',
-    type: UserListResponseDto
+    description: 'Users retrieved successfully with pagination',
+    type: UserPaginationResponseDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Bad request - Invalid query parameters',
+    type: ValidationErrorResponseDto
   })
   @ApiResponse({ 
     status: 401, 
@@ -76,8 +106,8 @@ export class UserController {
   })
   @Auth('admin') // Chỉ admin mới có quyền xem danh sách toàn bộ user
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() query: QueryUserDto) {
+    return this.userService.findAll(query);
   }
 
   /**

@@ -10,6 +10,7 @@ import { Repository, DataSource } from 'typeorm';
 import { CreateUsersDto } from '@/modules/users/dto/create-users.dto';
 import * as bcrypt from 'bcryptjs'; // Thư viện để mã hóa mật khẩu
 import { UpdateRoleDto } from '@/modules/users/dto/update-role.dto';
+import { QueryUserDto } from '@/modules/users/dto/query-user.dto';
 import { ADMIN_ROLE } from '@/common/constants/roles.constant';
 
 /**
@@ -200,21 +201,46 @@ export class UserService {
   }
 
   /**
-   * Lấy tất cả users từ database (sắp xếp theo thời gian tạo mới nhất)
+   * Lấy tất cả users từ database với pagination (sắp xếp theo thời gian tạo mới nhất)
    *
-   * Method này trả về tất cả users, thường chỉ dùng cho admin
+   * Method này trả về users với pagination, thường chỉ dùng cho admin
    * Sắp xếp theo createdAt DESC để user mới nhất hiển thị đầu tiên
    *
-   * @returns Promise<UsersEntity[]> - Danh sách tất cả users
+   * @param query - Query parameters với pagination
+   * @returns Promise<Object> - Danh sách users và metadata pagination
    */
-  async findAll(): Promise<UsersEntity[]> {
+  async findAll(query?: QueryUserDto): Promise<{ users: UsersEntity[]; pagination: any }> {
     try {
-      // Tìm tất cả users và sắp xếp theo createdAt giảm dần (mới nhất trước)
-      const users = await this.usersRepository.find({
+      // Xử lý pagination
+      const page = Math.max(1, query?.page ?? 1);
+      const limit = Math.min(100, Math.max(1, query?.limit ?? 10)); // Giới hạn max 100 items/page
+      const skip = (page - 1) * limit;
+
+      // Thực hiện query với pagination
+      const [users, total] = await this.usersRepository.findAndCount({
         order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
       });
-      this.logger.debug(`Retrieved ${users.length} users`);
-      return users;
+
+      // Tính toán metadata pagination
+      const totalPages = Math.ceil(total / limit);
+      const hasNextPage = page < totalPages;
+      const hasPrevPage = page > 1;
+
+      this.logger.debug(`Retrieved ${users.length} users (page ${page}/${totalPages})`);
+
+      return {
+        users,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNextPage,
+          hasPrevPage,
+        }
+      };
     } catch (error) {
       this.logger.error(
         `Failed to retrieve users: ${error.message}`,

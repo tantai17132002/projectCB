@@ -29,6 +29,9 @@ import {
   TodoResponseDto,
   TodoListResponseDto,
 } from '@/modules/todos/dto/todo-response.dto';
+import {
+  TodoPaginationResponseDto,
+} from '@/modules/todos/dto/todo-pagination-response.dto';
 import { 
   ErrorResponseDto,
   ValidationErrorResponseDto,
@@ -80,19 +83,102 @@ export class TodosController {
 
   /**
    * GET /todos
-   * Lấy danh sách todos với phân trang và filter
+   * Lấy danh sách todos với phân trang, filtering và sorting nâng cao
+   * 
+   * Hỗ trợ các tính năng:
+   * - Pagination: page, limit (max 100 items/page)
+   * - Filtering: isDone, search (title/description), dateFrom, dateTo
+   * - Sorting: sortBy, sortOrder
+   * - Authorization: admin thấy tất cả, user chỉ thấy của mình
+   * 
    * @param user - Thông tin user từ JWT token
-   * @param query - Các tham số query (page, limit, isDone) từ URL
-   * @returns Object chứa danh sách todos, tổng số, trang hiện tại, limit
+   * @param query - Các tham số query với đầy đủ filter options
+   * @returns Object chứa danh sách todos, metadata pagination và filters applied
    *
-   * Ví dụ: GET /todos?page=2&limit=10&isDone=true
+   * @example
+   * // Cơ bản: GET /todos?page=1&limit=10
+   * // Filter: GET /todos?isDone=true&search=typescript
+   * // Date range: GET /todos?dateFrom=2024-01-01T00:00:00.000Z&dateTo=2024-12-31T23:59:59.999Z
+   * // Sorting: GET /todos?sortBy=createdAt&sortOrder=desc
+   * // Kết hợp: GET /todos?page=2&limit=20&isDone=false&search=learn&sortBy=title&sortOrder=asc
    */
-  @ApiOperation({ summary: 'Get all todos with pagination and filtering' })
-  @ApiQuery({ type: QueryTodoDto })
+  @ApiOperation({ 
+    summary: 'Get all todos with advanced pagination, filtering and sorting',
+    description: `
+    Retrieve todos with advanced features:
+    - **Pagination**: page, limit (max 100 items/page)
+    - **Filtering**: isDone, search (title/description), dateFrom, dateTo
+    - **Sorting**: sortBy (id, title, isDone, createdAt, updatedAt), sortOrder (asc, desc)
+    - **Authorization**: Admin sees all, users see only their own todos
+    
+    Examples:
+    - Basic: ?page=1&limit=10
+    - Filter: ?isDone=true&search=typescript
+    - Date range: ?dateFrom=2024-01-01T00:00:00.000Z&dateTo=2024-12-31T23:59:59.999Z
+    - Sorting: ?sortBy=createdAt&sortOrder=desc
+    - Combined: ?page=2&limit=20&isDone=false&search=learn&sortBy=title&sortOrder=asc
+    `
+  })
+  @ApiQuery({ 
+    name: 'page', 
+    description: 'Page number (min: 1)',
+    example: 1,
+    required: false
+  })
+  @ApiQuery({ 
+    name: 'limit', 
+    description: 'Items per page (min: 1, max: 100)',
+    example: 10,
+    required: false
+  })
+  @ApiQuery({ 
+    name: 'isDone', 
+    description: 'Filter by completion status',
+    example: 'true',
+    required: false,
+    enum: ['true', 'false']
+  })
+  @ApiQuery({ 
+    name: 'search', 
+    description: 'Search in title or description (case-insensitive)',
+    example: 'typescript',
+    required: false
+  })
+  @ApiQuery({ 
+    name: 'dateFrom', 
+    description: 'Filter todos created from this date (ISO format)',
+    example: '2024-01-01T00:00:00.000Z',
+    required: false
+  })
+  @ApiQuery({ 
+    name: 'dateTo', 
+    description: 'Filter todos created until this date (ISO format)',
+    example: '2024-12-31T23:59:59.999Z',
+    required: false
+  })
+  @ApiQuery({ 
+    name: 'sortBy', 
+    description: 'Sort by field',
+    example: 'createdAt',
+    required: false,
+    enum: ['id', 'title', 'isDone', 'createdAt', 'updatedAt']
+  })
+  @ApiQuery({ 
+    name: 'sortOrder', 
+    description: 'Sort order',
+    example: 'desc',
+    required: false,
+    enum: ['asc', 'desc']
+  })
   @ApiResponse({
     status: 200,
-    description: 'Todos retrieved successfully',
-    type: TodoListResponseDto,
+    description: 'Todos retrieved successfully with pagination metadata',
+    type: TodoPaginationResponseDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Bad request - Invalid query parameters',
+    type: ValidationErrorResponseDto
   })
   @ApiResponse({ 
     status: 401, 

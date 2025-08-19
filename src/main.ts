@@ -45,7 +45,20 @@ async function bootstrap() {
     .setTitle('Todo API') // Tiêu đề hiển thị trên Swagger UI
     .setDescription('NestJS Todo App with Auth') // Mô tả chi tiết về API
     .setVersion('1.0') // Phiên bản API hiện tại
-    .addBearerAuth() // Thêm authentication Bearer token vào Swagger UI
+    .addTag('Authentication', 'User registration and authentication endpoints')
+    .addTag('Todos', 'Todo management with advanced pagination, filtering and sorting')
+    .addTag('Users', 'User management and role updates (Admin only)')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth', 
+    ) // Thêm authentication Bearer token vào Swagger UI
     .build(); // Tạo cấu hình Swagger
 
   // Tạo document Swagger từ cấu hình đã định nghĩa ở trên

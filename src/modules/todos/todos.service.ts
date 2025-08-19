@@ -1,6 +1,6 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like, Between } from 'typeorm';
 import { TodoEntity } from '@/modules/todos/entities/todo.entity';
 import { CreateTodoDto } from '@/modules/todos/dto/create-todo.dto';
 import { UpdateTodoDto } from '@/modules/todos/dto/update-todo.dto';
@@ -40,43 +40,175 @@ export class TodosService {
   }
 
   /**
-   * Lấy danh sách todos với phân trang và filter
+   * Lấy danh sách todos với phân trang, filtering và sorting nâng cao
+   * 
+   * Hỗ trợ các tính năng:
+   * - Pagination: page, limit (max 100 items/page)
+   * - Filtering: isDone, search (title/description), dateFrom, dateTo
+   * - Sorting: sortBy, sortOrder
+   * - Authorization: admin thấy tất cả, user chỉ thấy của mình
+   * 
    * @param user - Thông tin user đang truy vấn
-   * @param query - Các tham số query (page, limit, isDone)
-   * @returns Object chứa danh sách todos, tổng số, trang hiện tại, limit
+   * @param query - Các tham số query với đầy đủ filter options
+   * @returns Object chứa danh sách todos, metadata pagination
    */
   async findAllTodos(user: JwtUser, query: QueryTodoDto) {
-    // Xử lý phân trang
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-    const skip = (page - 1) * limit; // Tính số ghi cần bỏ qua
-
-    // Xây dựng điều kiện where cho query
-    const where: any = {};
+    const { page, limit, skip } = this.buildPaginationParams(query);
+    const whereClause = this.buildWhereConditions(user, query);
+    const orderClause = this.buildOrderClause(query);
     
-    // Lọc theo trạng thái isDone nếu có
-    if (query.isDone !== undefined) {
-      where.isDone = query.isDone === 'true'; // Chuyển đổi string "true"/"false" thành boolean
-    }
-
-    // Phân quyền: admin thấy tất cả, user chỉ thấy của mình
-    if (user.role !== 'admin') {
-      where.ownerId = user.id;
-    }
-
-    // Thực hiện query với phân trang
-    const [items, total] = await this.todoRepository.findAndCount({
-      where,
-      order: { createdAt: 'DESC' }, // Sắp xếp theo thời gian tạo mới nhất
+    const [todos, total] = await this.todoRepository.findAndCount({
+      where: whereClause,
+      order: orderClause,
       skip,
       take: limit,
     });
 
     return {
-      items, // Danh sách todos
-      total, // Tổng số todos
-      page,  // Trang hiện tại
-      limit, // Số items trên mỗi trang
+      todos,
+      pagination: this.buildPaginationMetadata(page, limit, total),
+      filters: this.buildFiltersMetadata(query),
+    };
+  }
+
+  /**
+   * Xây dựng parameters cho pagination
+   */
+  private buildPaginationParams(query: QueryTodoDto) {
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(100, Math.max(1, query.limit ?? 10));
+    const skip = (page - 1) * limit;
+    
+    return { page, limit, skip };
+  }
+
+  /**
+   * Xây dựng điều kiện WHERE cho query
+   */
+  private buildWhereConditions(user: JwtUser, query: QueryTodoDto) {
+    const whereConditions: any[] = [];
+
+    // Phân quyền: admin thấy tất cả, user chỉ thấy của mình
+    if (user.role !== 'admin') {
+      whereConditions.push({ ownerId: user.id });
+    }
+
+    // Filter theo trạng thái isDone
+    if (query.isDone !== undefined) {
+      const isDoneValue = query.isDone === 'true';
+      whereConditions.push({ isDone: isDoneValue });
+    }
+
+    // Filter theo ngày tạo
+    if (query.dateFrom || query.dateTo) {
+      whereConditions.push(this.buildDateFilter(query.dateFrom, query.dateTo));
+    }
+
+    // Filter theo search
+    const searchConditions = this.buildSearchConditions(query.search);
+
+    return this.combineWhereConditions(whereConditions, searchConditions);
+  }
+
+  /**
+   * Xây dựng filter theo ngày
+   */
+  private buildDateFilter(dateFrom?: string, dateTo?: string) {
+    const dateFilter: any = {};
+    if (dateFrom) {
+      dateFilter.createdAt = Between(new Date(dateFrom), dateTo ? new Date(dateTo) : new Date());
+    } else if (dateTo) {
+      dateFilter.createdAt = Between(new Date(0), new Date(dateTo));
+    }
+    return dateFilter;
+  }
+
+  /**
+   * Xây dựng điều kiện search
+   */
+  private buildSearchConditions(search?: string) {
+    if (!search) return [];
+    
+    const searchTerm = `%${search}%`;
+    return [
+      { title: Like(searchTerm) },
+      { description: Like(searchTerm) }
+    ];
+  }
+
+  /**
+   * Kết hợp các điều kiện WHERE
+   */
+  private combineWhereConditions(whereConditions: any[], searchConditions: any[]) {
+    if (whereConditions.length > 0 && searchConditions.length > 0) {
+      // Có cả filter và search - kết hợp với AND và OR
+      return [
+        ...whereConditions.map(condition => ({
+          ...condition,
+          ...searchConditions[0]
+        })),
+        ...whereConditions.map(condition => ({
+          ...condition,
+          ...searchConditions[1]
+        }))
+      ];
+    } else if (whereConditions.length > 0) {
+      // Chỉ có filter
+      return whereConditions.length === 1 ? whereConditions[0] : whereConditions;
+    } else if (searchConditions.length > 0) {
+      // Chỉ có search
+      return searchConditions;
+    } else {
+      // Không có filter nào
+      return {};
+    }
+  }
+
+  /**
+   * Xây dựng điều kiện ORDER BY
+   */
+  private buildOrderClause(query: QueryTodoDto) {
+    const sortBy = query.sortBy || 'createdAt';
+    const sortOrder = query.sortOrder || 'desc';
+    
+    // Validate sortBy field
+    const allowedSortFields = ['id', 'title', 'isDone', 'createdAt', 'updatedAt'];
+    if (!allowedSortFields.includes(sortBy)) {
+      throw new BadRequestException(`Invalid sort field: ${sortBy}. Allowed fields: ${allowedSortFields.join(', ')}`);
+    }
+
+    return { [sortBy]: sortOrder.toUpperCase() };
+  }
+
+  /**
+   * Xây dựng metadata pagination
+   */
+  private buildPaginationMetadata(page: number, limit: number, total: number) {
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNextPage,
+      hasPrevPage,
+    };
+  }
+
+  /**
+   * Xây dựng metadata filters
+   */
+  private buildFiltersMetadata(query: QueryTodoDto) {
+    return {
+      isDone: query.isDone,
+      search: query.search,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+      sortBy: query.sortBy || 'createdAt',
+      sortOrder: query.sortOrder || 'desc',
     };
   }
 
