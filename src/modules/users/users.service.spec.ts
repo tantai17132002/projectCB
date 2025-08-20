@@ -9,6 +9,7 @@ import { CreateUsersDto } from '@/modules/users/dto/create-users.dto';
 import { UpdateRoleDto } from '@/modules/users/dto/update-role.dto';
 import { QueryUserDto } from '@/modules/users/dto/query-user.dto';
 import { ADMIN_ROLE } from '@/common/constants/roles.constant';
+import { CustomLogger } from '@/common/logger/custom-logger.service';
 
 // Mock bcryptjs để kiểm soát kết quả hash password trong test
 jest.mock('bcryptjs');
@@ -99,6 +100,16 @@ describe('UserService', () => {
             createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
           },
         },
+        {
+          // Mock CustomLogger cho users operations
+          provide: CustomLogger,
+          useValue: {
+            log: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -159,9 +170,7 @@ describe('UserService', () => {
 
       // Act & Assert - Test error handling
       // Verify ném ConflictException
-      await expect(service.createUser(mockCreateUserDto)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.createUser(mockCreateUserDto)).rejects.toThrow(ConflictException);
       // Verify message error chính xác
       await expect(service.createUser(mockCreateUserDto)).rejects.toThrow(
         'Username already exists',
@@ -183,9 +192,7 @@ describe('UserService', () => {
 
       // Act & Assert - Test error propagation
       // Verify service propagate bcrypt error
-      await expect(service.createUser(mockCreateUserDto)).rejects.toThrow(
-        'Hash error',
-      );
+      await expect(service.createUser(mockCreateUserDto)).rejects.toThrow('Hash error');
     });
   });
 
@@ -276,10 +283,7 @@ describe('UserService', () => {
 
       // Assert - Verify query với OR condition (username OR email)
       expect(usersRepository.findOne).toHaveBeenCalledWith({
-        where: [
-          { username: 'test@example.com' },
-          { email: 'test@example.com' },
-        ], // OR condition
+        where: [{ username: 'test@example.com' }, { email: 'test@example.com' }], // OR condition
       });
       expect(result).toEqual(mockUser);
     });
@@ -477,13 +481,11 @@ describe('UserService', () => {
 
       // Act & Assert - Test business rule: không cho phép downgrade admin cuối cùng
       // Verify ném ConflictException
-      await expect(
-        service.updateRole(userId, { role: 'user' }),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.updateRole(userId, { role: 'user' })).rejects.toThrow(ConflictException);
       // Verify message error chính xác
-      await expect(
-        service.updateRole(userId, { role: 'user' }),
-      ).rejects.toThrow('Cannot downgrade the last admin user');
+      await expect(service.updateRole(userId, { role: 'user' })).rejects.toThrow(
+        'Cannot downgrade the last admin user',
+      );
 
       // Verify transaction được rollback và connection được release
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled(); // Rollback transaction
@@ -510,9 +512,7 @@ describe('UserService', () => {
 
       // Act & Assert - Test error handling trong transaction
       // Verify service propagate database error
-      await expect(
-        service.updateRole(userId, mockUpdateRoleDto),
-      ).rejects.toThrow('Database error');
+      await expect(service.updateRole(userId, mockUpdateRoleDto)).rejects.toThrow('Database error');
 
       // Verify transaction được rollback và connection được release
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled(); // Rollback transaction

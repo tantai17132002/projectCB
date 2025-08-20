@@ -7,7 +7,7 @@ import { IsString, IsNotEmpty } from 'class-validator';
 export class MessageResponseDto {
   @ApiProperty({
     description: 'Response message',
-    example: 'Operation completed successfully'
+    example: 'Operation completed successfully',
   })
   @IsString()
   @IsNotEmpty()
@@ -19,7 +19,7 @@ export class MessageResponseDto {
  */
 export class DataResponseDto<T = any> {
   @ApiProperty({
-    description: 'Response data'
+    description: 'Response data',
   })
   data: T;
 }
@@ -30,14 +30,14 @@ export class DataResponseDto<T = any> {
 export class MessageDataResponseDto<T = any> {
   @ApiProperty({
     description: 'Response message',
-    example: 'Operation completed successfully'
+    example: 'Operation completed successfully',
   })
   @IsString()
   @IsNotEmpty()
   message: string;
 
   @ApiProperty({
-    description: 'Response data'
+    description: 'Response data',
   })
   data: T;
 }

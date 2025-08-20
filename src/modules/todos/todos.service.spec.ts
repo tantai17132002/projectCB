@@ -1,17 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TodosService } from '@/modules/todos/todos.service';
 import { TodoEntity } from '@/modules/todos/entities/todo.entity';
 import { CreateTodoDto } from '@/modules/todos/dto/create-todo.dto';
 import { UpdateTodoDto } from '@/modules/todos/dto/update-todo.dto';
 import { QueryTodoDto } from '@/modules/todos/dto/query-todo.dto';
 import type { JwtUser } from '@/common/types';
+import { CustomLogger } from '@/common/logger/custom-logger.service';
 
 /**
  * Unit Tests cho TodosService
@@ -73,7 +70,7 @@ describe('TodosService', () => {
   };
 
   beforeEach(async () => {
-    // Thiết lập module test với mock repository
+    // Thiết lập module test với mock repository và CustomLogger
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TodosService,
@@ -85,6 +82,15 @@ describe('TodosService', () => {
             findOne: jest.fn(),
             findAndCount: jest.fn(),
             remove: jest.fn(),
+          },
+        },
+        {
+          provide: CustomLogger,
+          useValue: {
+            log: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
           },
         },
       ],
@@ -347,12 +353,12 @@ describe('TodosService', () => {
       const invalidQuery = { ...mockQueryTodoDto, sortBy: 'invalidField' };
 
       // Act & Assert - Kiểm tra exception khi sort field không hợp lệ
-      await expect(
-        service.findAllTodos(mockUser, invalidQuery),
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.findAllTodos(mockUser, invalidQuery),
-      ).rejects.toThrow('Invalid sort field: invalidField');
+      await expect(service.findAllTodos(mockUser, invalidQuery)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.findAllTodos(mockUser, invalidQuery)).rejects.toThrow(
+        'Invalid sort field: invalidField',
+      );
     });
   });
 
@@ -390,12 +396,8 @@ describe('TodosService', () => {
       todoRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert - Kiểm tra exception khi todo không tồn tại
-      await expect(service.findOneTodo(999, mockUser)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.findOneTodo(999, mockUser)).rejects.toThrow(
-        'Todo not found',
-      );
+      await expect(service.findOneTodo(999, mockUser)).rejects.toThrow(NotFoundException);
+      await expect(service.findOneTodo(999, mockUser)).rejects.toThrow('Todo not found');
     });
 
     it('should throw ForbiddenException when user is not owner and not admin', async () => {
@@ -404,9 +406,7 @@ describe('TodosService', () => {
       todoRepository.findOne.mockResolvedValue(todoNotOwned as any);
 
       // Act & Assert - Kiểm tra exception khi không có quyền truy cập
-      await expect(service.findOneTodo(1, mockUser)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.findOneTodo(1, mockUser)).rejects.toThrow(ForbiddenException);
       await expect(service.findOneTodo(1, mockUser)).rejects.toThrow(
         'You are not allowed to access this resource',
       );
@@ -454,9 +454,9 @@ describe('TodosService', () => {
       todoRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert - Kiểm tra exception khi todo không tồn tại
-      await expect(
-        service.updateTodo(999, mockUser, mockUpdateTodoDto),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.updateTodo(999, mockUser, mockUpdateTodoDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException when user is not owner and not admin', async () => {
@@ -465,9 +465,9 @@ describe('TodosService', () => {
       todoRepository.findOne.mockResolvedValue(todoNotOwned as any);
 
       // Act & Assert - Kiểm tra exception khi không có quyền
-      await expect(
-        service.updateTodo(1, mockUser, mockUpdateTodoDto),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.updateTodo(1, mockUser, mockUpdateTodoDto)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -495,9 +495,7 @@ describe('TodosService', () => {
       todoRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert - Kiểm tra exception khi todo không tồn tại
-      await expect(service.removeTodo(999, mockUser)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.removeTodo(999, mockUser)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user is not owner and not admin', async () => {
@@ -506,9 +504,7 @@ describe('TodosService', () => {
       todoRepository.findOne.mockResolvedValue(todoNotOwned as any);
 
       // Act & Assert - Kiểm tra exception khi không có quyền
-      await expect(service.removeTodo(1, mockUser)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.removeTodo(1, mockUser)).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -522,16 +518,12 @@ describe('TodosService', () => {
       const todoNotOwned = { ...mockTodo, ownerId: 999 };
 
       // Act & Assert - Kiểm tra admin có quyền truy cập
-      expect(() =>
-        service['assertCanAccess'](todoNotOwned as any, mockAdminUser),
-      ).not.toThrow();
+      expect(() => service['assertCanAccess'](todoNotOwned as any, mockAdminUser)).not.toThrow();
     });
 
     it('should allow user to access their own todo', () => {
       // Act & Assert - Kiểm tra user có thể truy cập todo của mình
-      expect(() =>
-        service['assertCanAccess'](mockTodo as any, mockUser),
-      ).not.toThrow();
+      expect(() => service['assertCanAccess'](mockTodo as any, mockUser)).not.toThrow();
     });
 
     it('should throw ForbiddenException when user tries to access other user todo', () => {
@@ -539,12 +531,12 @@ describe('TodosService', () => {
       const todoNotOwned = { ...mockTodo, ownerId: 999 };
 
       // Act & Assert - Kiểm tra exception khi không có quyền truy cập
-      expect(() =>
-        service['assertCanAccess'](todoNotOwned as any, mockUser),
-      ).toThrow(ForbiddenException);
-      expect(() =>
-        service['assertCanAccess'](todoNotOwned as any, mockUser),
-      ).toThrow('You are not allowed to access this resource');
+      expect(() => service['assertCanAccess'](todoNotOwned as any, mockUser)).toThrow(
+        ForbiddenException,
+      );
+      expect(() => service['assertCanAccess'](todoNotOwned as any, mockUser)).toThrow(
+        'You are not allowed to access this resource',
+      );
     });
   });
 });

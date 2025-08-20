@@ -5,6 +5,7 @@ import { UserService } from '@/modules/users/users.service';
 import { UserController } from '@/modules/users/users.controller';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { SelfOrAdminGuard } from '@/common/guards/self-or-admin.guard';
+import { CustomLogger } from '@/common/logger/custom-logger.service';
 
 /**
  * UserModule - Module quản lý tất cả các thành phần liên quan đến user
@@ -34,7 +35,8 @@ import { SelfOrAdminGuard } from '@/common/guards/self-or-admin.guard';
   // Khai báo các service chứa business logic
   // Service sẽ được inject vào controller
   // Guard sẽ được inject vào controller để kiểm tra quyền truy cập
-  providers: [UserService, RolesGuard, SelfOrAdminGuard],
+  // CustomLogger - Trình ghi nhật ký tùy chỉnh cho users operations
+  providers: [UserService, RolesGuard, SelfOrAdminGuard, CustomLogger],
 
   // Export service để các module khác có thể sử dụng
   // Ví dụ: AuthModule có thể import UserService

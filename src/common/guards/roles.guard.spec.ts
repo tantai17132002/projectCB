@@ -7,14 +7,14 @@ import { JwtUser } from '@/common/types/jwt-user.type';
 
 /**
  * Unit Tests cho RolesGuard
- * 
+ *
  * Đây là loại test đơn vị (Unit Test) để kiểm tra:
  * - Logic authorization dựa trên vai trò (role-based access control)
  * - KHÔNG chạm database thật (sử dụng mock ExecutionContext, Reflector)
  * - Mock tất cả dependencies (Reflector, ExecutionContext)
  * - Test từng scenario riêng lẻ với các role khác nhau
  * - Kiểm tra error handling và exception throwing
- * 
+ *
  * Mục tiêu:
  * - user role không đúng → throw ForbiddenException (403)
  * - user role đúng → return true (pass)
@@ -72,7 +72,9 @@ describe('RolesGuard', () => {
    * Tạo mock ExecutionContext cho testing
    * ExecutionContext chứa thông tin về request hiện tại
    */
-  const createMockExecutionContext = (user: JwtUser | null = null): jest.Mocked<ExecutionContext> => {
+  const createMockExecutionContext = (
+    user: JwtUser | null = null,
+  ): jest.Mocked<ExecutionContext> => {
     const mockRequest = {
       user, // Mock user trong request
       params: {}, // Mock URL parameters
@@ -101,10 +103,10 @@ describe('RolesGuard', () => {
 
       // Assert - Verify cho phép truy cập vì không yêu cầu role
       expect(result).toBe(true); // Pass qua
-      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
-        ROLES_KEY,
-        [mockContext.getHandler(), mockContext.getClass()]
-      );
+      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(ROLES_KEY, [
+        mockContext.getHandler(),
+        mockContext.getClass(),
+      ]);
     });
 
     it('should allow access when required roles array is empty', () => {
@@ -162,9 +164,7 @@ describe('RolesGuard', () => {
 
       // Act & Assert - Verify ném ForbiddenException
       expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
-      expect(() => guard.canActivate(mockContext)).toThrow(
-        'Access denied. Required roles: admin'
-      );
+      expect(() => guard.canActivate(mockContext)).toThrow('Access denied. Required roles: admin');
     });
 
     it('should allow access when user has one of multiple required roles', () => {
@@ -186,9 +186,7 @@ describe('RolesGuard', () => {
 
       // Act & Assert - Verify ném ForbiddenException
       expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
-      expect(() => guard.canActivate(mockContext)).toThrow(
-        'Access denied. Required roles: admin'
-      );
+      expect(() => guard.canActivate(mockContext)).toThrow('Access denied. Required roles: admin');
     });
 
     // ===== TEST: Multiple roles scenarios =====

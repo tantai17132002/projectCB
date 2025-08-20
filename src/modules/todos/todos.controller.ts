@@ -25,10 +25,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import {
-  TodoResponseDto,
-  TodoListResponseDto,
-} from '@/modules/todos/dto/todo-response.dto';
+import { TodoResponseDto, TodoListResponseDto } from '@/modules/todos/dto/todo-response.dto';
 import { TodoPaginationResponseDto } from '@/modules/todos/dto/todo-pagination-response.dto';
 import {
   ErrorResponseDto,
@@ -40,8 +37,27 @@ import {
 import type { JwtUser } from '@/common/types';
 
 /**
- * Controller xử lý các HTTP requests cho module Todos
+ * TodosController - Controller xử lý các HTTP requests cho module Todos
+ *
+ * Controller này chỉ chịu trách nhiệm:
+ * - Routing: Định tuyến HTTP requests đến đúng endpoints
+ * - Input/Output: Nhận request và trả về response
+ * - Validation: Validate input thông qua DTOs và ValidationPipe
+ * - Authentication: JWT authentication thông qua Guards
+ * - Gọi Service: Delegate business logic cho TodosService
+ *
+ * Business logic và logging được xử lý trong TodosService
+ *
+ * Endpoints:
+ * - POST /todos: Tạo todo mới
+ * - GET /todos: Lấy danh sách todos với pagination/filtering
+ * - GET /todos/:id: Lấy thông tin todo theo ID
+ * - PATCH /todos/:id: Cập nhật todo
+ * - DELETE /todos/:id: Xóa todo
+ *
+ * @description
  * Tất cả endpoints đều yêu cầu xác thực JWT
+ * Tuân thủ nguyên tắc: Controller chỉ routing + I/O, Service xử lý business logic
  */
 @ApiTags('Todos')
 @ApiBearerAuth()
@@ -53,6 +69,15 @@ export class TodosController {
   /**
    * POST /todos
    * Tạo todo mới
+   *
+   * Controller chỉ chịu trách nhiệm:
+   * - Nhận request từ client
+   * - Validate input (thông qua DTOs và ValidationPipe)
+   * - Gọi TodosService để xử lý business logic
+   * - Trả về response cho client
+   *
+   * Business logic được xử lý trong TodosService.createTodo()
+   *
    * @param user - Thông tin user từ JWT token (tự động inject bởi @CurrentUser())
    * @param dto - Dữ liệu để tạo todo (từ request body)
    * @returns Todo đã được tạo
@@ -82,6 +107,14 @@ export class TodosController {
   /**
    * GET /todos
    * Lấy danh sách todos với phân trang, filtering và sorting nâng cao
+   *
+   * Controller chỉ chịu trách nhiệm:
+   * - Nhận request từ client
+   * - Validate query parameters (thông qua DTOs và ValidationPipe)
+   * - Gọi TodosService để xử lý business logic
+   * - Trả về response cho client
+   *
+   * Business logic được xử lý trong TodosService.findAllTodos()
    *
    * Hỗ trợ các tính năng:
    * - Pagination: page, limit (max 100 items/page)
@@ -177,6 +210,15 @@ export class TodosController {
   /**
    * GET /todos/:id
    * Lấy thông tin chi tiết một todo theo ID
+   *
+   * Controller chỉ chịu trách nhiệm:
+   * - Nhận request từ client
+   * - Validate path parameter (thông qua ParseIntPipe)
+   * - Gọi TodosService để xử lý business logic
+   * - Trả về response cho client
+   *
+   * Business logic được xử lý trong TodosService.findOneTodo()
+   *
    * @param user - Thông tin user từ JWT token
    * @param id - ID của todo (tự động convert string thành number bởi ParseIntPipe)
    * @returns Todo entity
@@ -215,6 +257,15 @@ export class TodosController {
   /**
    * PATCH /todos/:id
    * Cập nhật thông tin todo
+   *
+   * Controller chỉ chịu trách nhiệm:
+   * - Nhận request từ client
+   * - Validate path parameter và body (thông qua ParseIntPipe và DTOs)
+   * - Gọi TodosService để xử lý business logic
+   * - Trả về response cho client
+   *
+   * Business logic được xử lý trong TodosService.updateTodo()
+   *
    * @param user - Thông tin user từ JWT token
    * @param id - ID của todo cần cập nhật
    * @param dto - Dữ liệu cập nhật (từ request body)
@@ -264,6 +315,15 @@ export class TodosController {
   /**
    * DELETE /todos/:id
    * Xóa todo
+   *
+   * Controller chỉ chịu trách nhiệm:
+   * - Nhận request từ client
+   * - Validate path parameter (thông qua ParseIntPipe)
+   * - Gọi TodosService để xử lý business logic
+   * - Trả về response cho client
+   *
+   * Business logic được xử lý trong TodosService.removeTodo()
+   *
    * @param user - Thông tin user từ JWT token
    * @param id - ID của todo cần xóa
    * @returns Object thông báo xóa thành công

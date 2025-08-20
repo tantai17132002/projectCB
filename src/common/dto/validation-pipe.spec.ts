@@ -8,21 +8,21 @@ import { QueryTodoDto } from '@/modules/todos/dto/query-todo.dto';
 
 /**
  * Unit Tests cho ValidationPipe + DTOs
- * 
+ *
  * Đây là loại test đơn vị (Unit Test) để kiểm tra:
  * - Validation logic của các DTOs (Data Transfer Objects)
  * - KHÔNG chạm database thật (sử dụng plainToClass và validate)
  * - Test từng validation rule riêng lẻ
  * - Kiểm tra error handling và validation messages
- * 
+ *
  * Mục tiêu:
  * - gửi thiếu field → 400 BadRequestException
  * - gửi đúng → pass validation
  * - gửi sai format → 400 BadRequestException
- * 
+ *
  * DTOs được test:
  * - CreateUsersDto: username, email, password validation
- * - LoginDto: usernameOrEmail, password validation  
+ * - LoginDto: usernameOrEmail, password validation
  * - CreateTodoDto: title, description, isDone validation
  * - QueryTodoDto: pagination, filtering, sorting validation
  */
@@ -146,8 +146,8 @@ describe('ValidationPipe + DTOs', () => {
 
       // Assert - Có nhiều lỗi validation
       expect(errors).toHaveLength(2);
-      expect(errors.some(e => e.property === 'email')).toBe(true);
-      expect(errors.some(e => e.property === 'password')).toBe(true);
+      expect(errors.some((e) => e.property === 'email')).toBe(true);
+      expect(errors.some((e) => e.property === 'password')).toBe(true);
     });
   });
 
@@ -577,7 +577,7 @@ describe('ValidationPipe + DTOs', () => {
         validationPipe.transform(invalidData, {
           type: 'body',
           metatype: CreateUsersDto,
-        } as any)
+        } as any),
       ).rejects.toThrow(BadRequestException);
     });
 

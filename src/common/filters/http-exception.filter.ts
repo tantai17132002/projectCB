@@ -11,14 +11,14 @@ import { QueryFailedError, EntityNotFoundError, TypeORMError } from 'typeorm';
 
 /**
  * HttpExceptionFilter - Filter xử lý tất cả các exception toàn cục
- * 
+ *
  * Filter này sẽ bắt và xử lý tất cả các exception trong ứng dụng:
  * - HttpException từ NestJS
  * - Database errors từ TypeORM
  * - Validation errors
  * - Authentication/Authorization errors
  * - Custom business logic errors
- * 
+ *
  * Mục đích:
  * - Chuẩn hóa format response error
  * - Log lỗi để debug
@@ -31,7 +31,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   /**
    * Xử lý exception khi được throw trong ứng dụng
-   * 
+   *
    * @param exception - Exception được throw
    * @param host - ArgumentsHost chứa thông tin request/response
    */
@@ -69,7 +69,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   /**
    * Phân tích exception để lấy thông tin status, message và error
-   * 
+   *
    * @param exception - Exception cần phân tích
    * @returns Object chứa status, message và error
    */
@@ -82,12 +82,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const response = exception.getResponse();
-      
+
       // Xử lý response có thể là string hoặc object
       if (typeof response === 'string') {
         return { status, message: response };
       }
-      
+
       if (typeof response === 'object' && response !== null) {
         const responseObj = response as any;
         return {
@@ -96,7 +96,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
           error: responseObj.error,
         };
       }
-      
+
       return { status, message: exception.message };
     }
 
@@ -151,7 +151,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   /**
    * Xử lý database errors từ TypeORM
-   * 
+   *
    * @param exception - QueryFailedError từ TypeORM
    * @returns Object chứa status, message và error
    */
@@ -170,28 +170,28 @@ export class HttpExceptionFilter implements ExceptionFilter {
           message: 'Resource already exists',
           error: 'UniqueConstraintViolation',
         };
-      
+
       case '23503': // foreign_key_violation
         return {
           status: HttpStatus.BAD_REQUEST,
           message: 'Referenced resource does not exist',
           error: 'ForeignKeyViolation',
         };
-      
+
       case '23502': // not_null_violation
         return {
           status: HttpStatus.BAD_REQUEST,
           message: 'Required field is missing',
           error: 'NotNullViolation',
         };
-      
+
       case '23514': // check_violation
         return {
           status: HttpStatus.BAD_REQUEST,
           message: 'Data validation failed',
           error: 'CheckViolation',
         };
-      
+
       default:
         return {
           status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -203,7 +203,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   /**
    * Kiểm tra xem exception có phải là ValidationError không
-   * 
+   *
    * @param exception - Exception cần kiểm tra
    * @returns true nếu là ValidationError
    */
@@ -216,11 +216,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     );
   }
 
-
-
   /**
    * Log lỗi với thông tin chi tiết
-   * 
+   *
    * @param exception - Exception gốc
    * @param context - Thông tin context của request
    */
@@ -260,7 +258,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   /**
    * Làm sạch body request để loại bỏ thông tin nhạy cảm
-   * 
+   *
    * @param body - Request body
    * @returns Body đã được làm sạch
    */
@@ -270,7 +268,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const sanitized = { ...body };
     const sensitiveFields = ['password', 'token', 'secret', 'key'];
 
-    sensitiveFields.forEach(field => {
+    sensitiveFields.forEach((field) => {
       if (sanitized[field]) {
         sanitized[field] = '[REDACTED]';
       }
@@ -281,19 +279,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   /**
    * Tạo response error chuẩn hóa
-   * 
+   *
    * @param status - HTTP status code
    * @param message - Error message
    * @param error - Error type
    * @param request - Request object
    * @returns Error response object
    */
-  private createErrorResponse(
-    status: number,
-    message: string,
-    error?: string,
-    request?: Request,
-  ) {
+  private createErrorResponse(status: number, message: string, error?: string, request?: Request) {
     const response: any = {
       statusCode: status,
       message,
@@ -321,7 +314,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   /**
    * Trích xuất chi tiết validation errors từ request body
-   * 
+   *
    * @param body - Request body
    * @returns Validation details
    */
@@ -331,15 +324,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return body.message.map((error: any) => ({
         field: error.property,
         message: error.constraints ? Object.values(error.constraints)[0] : error.message,
-        value: error.value
+        value: error.value,
       }));
     }
-    
+
     // Nếu body có validation errors dạng object
     if (body && typeof body === 'object' && body.errors) {
       return body.errors;
     }
-    
+
     return null;
   }
 }

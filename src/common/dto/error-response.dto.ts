@@ -6,32 +6,32 @@ import { ApiProperty } from '@nestjs/swagger';
 export class ErrorResponseDto {
   @ApiProperty({
     description: 'HTTP status code',
-    example: 400
+    example: 400,
   })
   statusCode: number;
 
   @ApiProperty({
     description: 'Error message',
-    example: 'Bad Request'
+    example: 'Bad Request',
   })
   message: string;
 
   @ApiProperty({
     description: 'Error details (optional)',
     example: 'Validation failed',
-    required: false
+    required: false,
   })
   error?: string;
 
   @ApiProperty({
     description: 'Timestamp when error occurred',
-    example: '2024-01-15T10:30:00.000Z'
+    example: '2024-01-15T10:30:00.000Z',
   })
   timestamp: string;
 
   @ApiProperty({
     description: 'Request path',
-    example: '/api/todos'
+    example: '/api/todos',
   })
   path: string;
 }
@@ -45,10 +45,10 @@ export class ValidationErrorResponseDto extends ErrorResponseDto {
     example: [
       {
         field: 'title',
-        message: 'Title is required'
-      }
+        message: 'Title is required',
+      },
     ],
-    type: 'array'
+    type: 'array',
   })
   errors: Array<{
     field: string;
@@ -62,7 +62,7 @@ export class ValidationErrorResponseDto extends ErrorResponseDto {
 export class UnauthorizedErrorResponseDto extends ErrorResponseDto {
   @ApiProperty({
     description: 'Error message for unauthorized access',
-    example: 'Unauthorized'
+    example: 'Unauthorized',
   })
   declare message: string;
 }
@@ -73,7 +73,7 @@ export class UnauthorizedErrorResponseDto extends ErrorResponseDto {
 export class ForbiddenErrorResponseDto extends ErrorResponseDto {
   @ApiProperty({
     description: 'Error message for forbidden access',
-    example: 'Forbidden - Access denied'
+    example: 'Forbidden - Access denied',
   })
   declare message: string;
 }
@@ -84,7 +84,7 @@ export class ForbiddenErrorResponseDto extends ErrorResponseDto {
 export class NotFoundErrorResponseDto extends ErrorResponseDto {
   @ApiProperty({
     description: 'Error message for resource not found',
-    example: 'Resource not found'
+    example: 'Resource not found',
   })
   declare message: string;
 }

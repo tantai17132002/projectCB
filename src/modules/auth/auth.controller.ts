@@ -1,34 +1,20 @@
 // Import các decorator và module cần thiết từ NestJS
-import {
-  Body,
-  Controller,
-  Post,
-  Get,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Post, Get, UseGuards } from '@nestjs/common';
 import { CreateUsersDto } from '@/modules/users/dto/create-users.dto';
 import { UserService } from '@/modules/users/users.service';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { AuthService } from '@/modules/auth/auth.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
-  ApiBearerAuth,
-  ApiBody 
-} from '@nestjs/swagger';
-import { 
-  RegisterResponseDto, 
-  LoginResponseDto
-} from '@/modules/auth/dto/auth-response.dto';
+
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { RegisterResponseDto, LoginResponseDto } from '@/modules/auth/dto/auth-response.dto';
 import { UserResponseDto } from '@/modules/users/dto/user-response.dto';
-import { 
+import {
   ErrorResponseDto,
   ValidationErrorResponseDto,
   UnauthorizedErrorResponseDto,
-  ForbiddenErrorResponseDto
+  ForbiddenErrorResponseDto,
 } from '@/common/dto/error-response.dto';
 import type { JwtUser } from '@/common/types';
 
@@ -36,14 +22,23 @@ import type { JwtUser } from '@/common/types';
 /**
  * AuthController - Controller xử lý các request liên quan đến authentication
  *
- * Controller này chứa các endpoint để:
- * - Đăng ký user mới (register)
- * - Đăng nhập user (login)
- * - Quản lý authentication và authorization
+ * Controller này chỉ chịu trách nhiệm:
+ * - Routing: Định tuyến HTTP requests đến đúng endpoints
+ * - Input/Output: Nhận request và trả về response
+ * - Validation: Validate input thông qua DTOs và ValidationPipe
+ * - Authentication: JWT authentication thông qua Guards
+ * - Gọi Service: Delegate business logic cho AuthService
+ *
+ * Business logic và logging được xử lý trong AuthService
+ *
+ * Endpoints:
+ * - POST /auth/register: Đăng ký user mới
+ * - POST /auth/login: Đăng nhập user
+ * - GET /auth/me: Lấy thông tin user hiện tại
  *
  * @description
  * Sử dụng prefix 'auth' cho tất cả routes
- * Ví dụ: POST /auth/register, POST /auth/login
+ * Tuân thủ nguyên tắc: Controller chỉ routing + I/O, Service xử lý business logic
  */
 @ApiTags('Authentication')
 @Controller('auth')
@@ -51,10 +46,19 @@ export class AuthController {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
+    // CustomLogger không cần thiết trong Controller vì logging được xử lý trong Service
   ) {}
 
   /**
    * Endpoint đăng ký user mới
+   *
+   * Controller chỉ chịu trách nhiệm:
+   * - Nhận request từ client
+   * - Validate input (thông qua DTOs và ValidationPipe)
+   * - Gọi AuthService để xử lý business logic
+   * - Trả về response cho client
+   *
+   * Business logic được xử lý trong AuthService.register()
    *
    * @param createUserDto - Dữ liệu user từ request body (username, email, password)
    * @returns Object chứa message thành công và thông tin user đã tạo
@@ -81,32 +85,42 @@ export class AuthController {
    */
   @ApiOperation({ summary: 'Register new user' })
   @ApiBody({ type: CreateUsersDto })
-  @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: 'User registered successfully',
-    type: RegisterResponseDto
+    type: RegisterResponseDto,
   })
-  @ApiResponse({ 
-    status: 400, 
+  @ApiResponse({
+    status: 400,
     description: 'Bad request - Invalid input data',
-    type: ValidationErrorResponseDto
+    type: ValidationErrorResponseDto,
   })
-  @ApiResponse({ 
-    status: 409, 
+  @ApiResponse({
+    status: 409,
     description: 'Username or email already exists',
-    type: ErrorResponseDto
+    type: ErrorResponseDto,
   })
   @Post('register')
   async register(@Body() createUserDto: CreateUsersDto) {
+    // Controller chỉ routing và gọi service
+    // Logging và business logic được xử lý trong AuthService
     return this.authService.register(createUserDto);
   }
 
   /**
    * Endpoint đăng nhập user
-   * 
+   *
+   * Controller chỉ chịu trách nhiệm:
+   * - Nhận request từ client
+   * - Validate input (thông qua DTOs và ValidationPipe)
+   * - Gọi AuthService để xử lý business logic
+   * - Trả về response cho client
+   *
+   * Business logic được xử lý trong AuthService.processLogin()
+   *
    * @param dto - Dữ liệu đăng nhập từ request body (usernameOrEmail, password)
    * @returns Object chứa JWT access token
-   * 
+   *
    * @example
    * // Request: POST /auth/login
    * // Body (đăng nhập bằng username):
@@ -114,13 +128,13 @@ export class AuthController {
    *   "usernameOrEmail": "john_doe",
    *   "password": "password123"
    * }
-   * 
+   *
    * // Body (đăng nhập bằng email):
    * {
    *   "usernameOrEmail": "john@example.com",
    *   "password": "password123"
    * }
-   * 
+   *
    * // Response:
    * {
    *   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -128,36 +142,45 @@ export class AuthController {
    */
   @ApiOperation({ summary: 'Login user' })
   @ApiBody({ type: LoginDto })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Login successfully',
-    type: LoginResponseDto
+    type: LoginResponseDto,
   })
-  @ApiResponse({ 
-    status: 400, 
+  @ApiResponse({
+    status: 400,
     description: 'Bad request - Invalid input data',
-    type: ValidationErrorResponseDto
+    type: ValidationErrorResponseDto,
   })
-  @ApiResponse({ 
-    status: 401, 
+  @ApiResponse({
+    status: 401,
     description: 'Login failed',
-    type: UnauthorizedErrorResponseDto
+    type: UnauthorizedErrorResponseDto,
   })
   @Post('login')
   async login(@Body() dto: LoginDto) {
+    // Controller chỉ routing và gọi service
+    // Logging và business logic được xử lý trong AuthService
     return this.authService.processLogin(dto);
   }
 
   /**
    * Endpoint lấy thông tin user hiện tại (cần xác thực)
-   * 
+   *
+   * Controller chỉ chịu trách nhiệm:
+   * - Nhận request từ client (với JWT token)
+   * - JWT authentication (thông qua JwtAuthGuard)
+   * - Trả về thông tin user từ JWT token
+   *
+   * Không cần gọi service vì thông tin user đã có trong JWT token
+   *
    * @param user - Thông tin user từ JWT token (được inject bởi CurrentUser decorator)
    * @returns Thông tin user hiện tại
-   * 
+   *
    * @example
    * // Request: GET /auth/me
    * // Headers: Authorization: Bearer <jwt_token>
-   * 
+   *
    * // Response:
    * {
    *   "id": 1,
@@ -167,20 +190,21 @@ export class AuthController {
    */
   @ApiOperation({ summary: 'Get current user information' })
   @ApiBearerAuth()
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Current user information',
-    type: UserResponseDto
+    type: UserResponseDto,
   })
-  @ApiResponse({ 
-    status: 401, 
+  @ApiResponse({
+    status: 401,
     description: 'Unauthorized',
-    type: UnauthorizedErrorResponseDto
+    type: UnauthorizedErrorResponseDto,
   })
   @UseGuards(JwtAuthGuard) // Bảo vệ endpoint bằng JWT authentication
   @Get('me')
   getMe(@CurrentUser() user: JwtUser) {
-    // Trả về thông tin user từ JWT token
+    // Controller chỉ trả về thông tin user từ JWT token
+    // Không cần logging vì đây là simple data retrieval
     return user;
   }
 }

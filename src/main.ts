@@ -1,9 +1,10 @@
 // Import các module cần thiết từ NestJS
 import { NestFactory } from '@nestjs/core'; // Factory để tạo ứng dụng NestJS
-import { AppModule } from './app.module'; 
+import { AppModule } from '@/app.module'; // Module chính của ứng dụng
 import { ValidationPipe } from '@nestjs/common'; // Pipe để validate dữ liệu đầu vào
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'; // Module để tạo API documentation
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter'; // ExceptionFilter toàn cục
+import { CustomLogger } from '@/common/logger/custom-logger.service';
 
 /**
  * Hàm bootstrap - Khởi tạo và chạy ứng dụng NestJS
@@ -18,7 +19,9 @@ import { HttpExceptionFilter } from '@/common/filters/http-exception.filter'; //
  */
 async function bootstrap() {
   // Tạo instance của ứng dụng NestJS từ AppModule
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new CustomLogger(),
+  });
 
   // Cấu hình global exception filter để xử lý tất cả các exception
   app.useGlobalFilters(new HttpExceptionFilter());
@@ -28,7 +31,7 @@ async function bootstrap() {
   // forbidNonWhitelisted: true = nếu có property không được định nghĩa trong DTO thì báo lỗi 400 Bad Request
   // transform: true = tự động chuyển đổi dữ liệu từ string sang number, boolean, date, ...
   // enableImplicitConversion: true = cho phép chuyển đổi ngầm định các kiểu dữ liệu
-  
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -57,7 +60,7 @@ async function bootstrap() {
         description: 'Enter JWT token',
         in: 'header',
       },
-      'JWT-auth', 
+      'JWT-auth',
     ) // Thêm authentication Bearer token vào Swagger UI
     .build(); // Tạo cấu hình Swagger
 

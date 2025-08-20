@@ -5,6 +5,7 @@ import { AuthService } from '@/modules/auth/auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from '@/modules/auth/strategies/jwt.strategy';
+import { CustomLogger } from '@/common/logger/custom-logger.service';
 
 /**
  * AuthModule - Module quản lý authentication và authorization
@@ -48,7 +49,8 @@ import { JwtStrategy } from '@/modules/auth/strategies/jwt.strategy';
   // Khai báo các service và strategy chứa business logic
   // - AuthService: Logic đăng nhập, validate user, tạo JWT token
   // - JwtStrategy: Strategy cho Passport để xác thực JWT token
-  providers: [AuthService, JwtStrategy],
+  // - CustomLogger: Trình ghi nhật ký tùy chỉnh cho nhật ký xác thực
+  providers: [AuthService, JwtStrategy, CustomLogger],
 
   // Export AuthService để các module khác có thể sử dụng
   // Ví dụ: UserModule có thể cần AuthService để check password

@@ -24,7 +24,7 @@ export class CreateUsersDto {
   @ApiProperty({
     description: 'Username of the user',
     example: 'john_doe',
-    required: true
+    required: true,
   })
   @IsNotEmpty()
   username: string;
@@ -37,7 +37,7 @@ export class CreateUsersDto {
   @ApiProperty({
     description: 'Email of the user',
     example: 'john@example.com',
-    required: true
+    required: true,
   })
   @IsEmail()
   email: string;
@@ -51,7 +51,7 @@ export class CreateUsersDto {
     description: 'Password of the user (minimum 8 characters)',
     example: 'password123',
     required: true,
-    minLength: 8
+    minLength: 8,
   })
   @MinLength(8)
   password: string;

@@ -15,7 +15,7 @@ import { ApiProperty } from '@nestjs/swagger';
  *   "usernameOrEmail": "john_doe",
  *   "password": "password123"
  * }
- * 
+ *
  * // Cách 2: Đăng nhập bằng email
  * {
  *   "usernameOrEmail": "john@example.com",
@@ -32,7 +32,7 @@ export class LoginDto {
   @ApiProperty({
     description: 'Username or email of the user',
     example: 'john_doe',
-    required: true
+    required: true,
   })
   @IsNotEmpty()
   usernameOrEmail: string;
@@ -41,7 +41,7 @@ export class LoginDto {
     description: 'Password of the user',
     example: 'password123',
     required: true,
-    minLength: 8
+    minLength: 8,
   })
   @IsNotEmpty()
   @MinLength(8)

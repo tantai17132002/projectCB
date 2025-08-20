@@ -1,4 +1,11 @@
-import { CanActivate, ExecutionContext, Injectable, Logger, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { ADMIN_ROLE } from '@/common/constants/roles.constant';
 import type { JwtUser } from '@/common/types/jwt-user.type';
@@ -14,7 +21,7 @@ import type { JwtUser } from '@/common/types/jwt-user.type';
  * - GET /users/123 - User có id=123 hoặc admin có thể truy cập
  * - PUT /users/123 - User có id=123 hoặc admin có thể cập nhật
  * - DELETE /users/123 - User có id=123 hoặc admin có thể xóa
- * 
+ *
  * Guard này thường được sử dụng sau JwtAuthGuard và RolesGuard
  * để đảm bảo user chỉ có thể truy cập resource của chính mình
  */
@@ -25,13 +32,13 @@ export class SelfOrAdminGuard implements CanActivate {
 
   /**
    * Phương thức kiểm tra quyền truy cập
-   * 
+   *
    * Quy trình kiểm tra:
    * 1. Lấy thông tin user từ request context
    * 2. Validate ID parameter từ URL
    * 3. Kiểm tra quyền truy cập theo logic self-or-admin
    * 4. Trả về true/false hoặc throw exception
-   * 
+   *
    * @param ctx - ExecutionContext chứa thông tin request
    * @returns true nếu user có quyền truy cập, false nếu không
    * @throws ForbiddenException nếu user không có quyền truy cập
@@ -69,9 +76,7 @@ export class SelfOrAdminGuard implements CanActivate {
     // 1. Nếu user là admin -> cho phép truy cập bất kỳ resource nào
     // Admin có quyền truy cập tất cả resources trong hệ thống
     if (user.role === ADMIN_ROLE) {
-      this.logger.debug(
-        `Admin user ${user.id} granted access to resource ${paramId}`
-      );
+      this.logger.debug(`Admin user ${user.id} granted access to resource ${paramId}`);
       return true;
     }
 
@@ -81,19 +86,13 @@ export class SelfOrAdminGuard implements CanActivate {
     const isSelfAccess = user.id === paramId;
 
     if (isSelfAccess) {
-      this.logger.debug(
-        `User ${user.id} granted access to their own resource`
-      );
+      this.logger.debug(`User ${user.id} granted access to their own resource`);
       return true;
     }
 
     // Nếu không phải admin và không phải resource của chính mình
     // Log warning và throw ForbiddenException
-    this.logger.warn(
-      `User ${user.id} denied access to resource ${paramId}. Self-access only.`
-    );
-    throw new ForbiddenException(
-      'Access denied. You can only access your own resources.'
-    );
+    this.logger.warn(`User ${user.id} denied access to resource ${paramId}. Self-access only.`);
+    throw new ForbiddenException('Access denied. You can only access your own resources.');
   }
 }

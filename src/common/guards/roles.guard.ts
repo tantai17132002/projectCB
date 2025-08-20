@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable, Logger, ForbiddenException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY, UserRole, hasRolePermission } from '@/common/constants/roles.constant';
 import type { JwtUser } from '@/common/types/jwt-user.type';
@@ -10,7 +16,7 @@ import type { JwtUser } from '@/common/types/jwt-user.type';
  * 1. Lấy danh sách roles được yêu cầu từ decorator @Roles
  * 2. Kiểm tra xem user hiện tại có role phù hợp không
  * 3. Cho phép hoặc từ chối truy cập vào endpoint
- * 
+ *
  * Guard này thường được sử dụng sau JwtAuthGuard để kiểm tra role
  * và trước SelfOrAdminGuard để kiểm tra quyền truy cập resource cụ thể
  */
@@ -24,13 +30,13 @@ export class RolesGuard implements CanActivate {
 
   /**
    * Phương thức chính để kiểm tra quyền truy cập
-   * 
+   *
    * Quy trình kiểm tra:
    * 1. Lấy required roles từ @Roles decorator
    * 2. Kiểm tra user có tồn tại không
    * 3. So sánh user role với required roles
    * 4. Sử dụng role hierarchy để kiểm tra quyền
-   * 
+   *
    * @param ctx - ExecutionContext chứa thông tin về request hiện tại
    * @returns true nếu user có quyền truy cập, false nếu không
    * @throws ForbiddenException nếu user không có quyền truy cập
@@ -67,24 +73,20 @@ export class RolesGuard implements CanActivate {
     // Kiểm tra xem role của user có trong danh sách roles được yêu cầu không
     // Sử dụng hasRolePermission() để kiểm tra theo role hierarchy
     // Ví dụ: admin có thể thực hiện tất cả quyền của user
-    const hasRequiredRole = requiredRoles.some(requiredRole => 
-      hasRolePermission(user.role, requiredRole)
+    const hasRequiredRole = requiredRoles.some((requiredRole) =>
+      hasRolePermission(user.role, requiredRole),
     );
 
     // Nếu user không có role phù hợp
     if (!hasRequiredRole) {
       this.logger.warn(
-        `User ${user.id} with role ${user.role} denied access. Required roles: ${requiredRoles.join(', ')}`
+        `User ${user.id} with role ${user.role} denied access. Required roles: ${requiredRoles.join(', ')}`,
       );
-      throw new ForbiddenException(
-        `Access denied. Required roles: ${requiredRoles.join(', ')}`
-      );
+      throw new ForbiddenException(`Access denied. Required roles: ${requiredRoles.join(', ')}`);
     }
 
     // Nếu user có role phù hợp, cho phép truy cập
-    this.logger.debug(
-      `User ${user.id} with role ${user.role} granted access to endpoint`
-    );
+    this.logger.debug(`User ${user.id} with role ${user.role} granted access to endpoint`);
     return true;
   }
 }
