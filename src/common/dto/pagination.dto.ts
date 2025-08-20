@@ -1,4 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, Min, Max, IsInt } from 'class-validator';
+import { Type } from 'class-transformer';
 
 /**
  * PaginationMetaDto - DTO chung cho metadata pagination
@@ -54,6 +56,10 @@ export class BaseQueryDto {
     default: 1,
     minimum: 1
   })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
   page?: number = 1;
 
   @ApiProperty({
@@ -63,5 +69,10 @@ export class BaseQueryDto {
     default: 10,
     minimum: 1
   })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
   limit?: number = 10;
 }
