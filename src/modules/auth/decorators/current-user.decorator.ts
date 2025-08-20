@@ -21,13 +21,11 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
  *   return { id, username, role };
  * }
  */
-export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => {
-    // Lấy request object từ execution context
-    const request = ctx.switchToHttp().getRequest();
+export const CurrentUser = createParamDecorator((data: unknown, ctx: ExecutionContext) => {
+  // Lấy request object từ execution context
+  const request = ctx.switchToHttp().getRequest();
 
-    // Trả về thông tin user đã được inject bởi JwtAuthGuard
-    // request.user chứa thông tin từ JWT payload: { id, username, role }
-    return request.user;
-  },
-);
+  // Trả về thông tin user đã được inject bởi JwtAuthGuard
+  // request.user chứa thông tin từ JWT payload: { id, username, role }
+  return request.user;
+});

@@ -9,37 +9,37 @@ import { Type } from 'class-transformer';
 export class PaginationMetaDto {
   @ApiProperty({
     description: 'Current page number',
-    example: 1
+    example: 1,
   })
   page: number;
 
   @ApiProperty({
     description: 'Number of items per page',
-    example: 10
+    example: 10,
   })
   limit: number;
 
   @ApiProperty({
     description: 'Total number of items',
-    example: 25
+    example: 25,
   })
   total: number;
 
   @ApiProperty({
     description: 'Total number of pages',
-    example: 3
+    example: 3,
   })
   totalPages: number;
 
   @ApiProperty({
     description: 'Whether there is a next page',
-    example: true
+    example: true,
   })
   hasNextPage: boolean;
 
   @ApiProperty({
     description: 'Whether there is a previous page',
-    example: false
+    example: false,
   })
   hasPrevPage: boolean;
 }
@@ -54,7 +54,7 @@ export class BaseQueryDto {
     example: 1,
     required: false,
     default: 1,
-    minimum: 1
+    minimum: 1,
   })
   @Type(() => Number)
   @IsOptional()
@@ -67,7 +67,7 @@ export class BaseQueryDto {
     example: 10,
     required: false,
     default: 10,
-    minimum: 1
+    minimum: 1,
   })
   @Type(() => Number)
   @IsOptional()

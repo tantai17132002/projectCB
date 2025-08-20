@@ -11,6 +11,7 @@ import { UsersEntity } from '@/modules/users/entity/users.entity';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { CustomLogger } from '@/common/logger/custom-logger.service';
 
 /**
  * Integration Tests cho Todos Controller
@@ -114,6 +115,16 @@ describe('TodosController (Integration)', () => {
             save: jest.fn(), // Lưu user vào DB
           },
         },
+        {
+          // Mock CustomLogger cho todos operations
+          provide: CustomLogger,
+          useValue: {
+            log: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
       ],
     })
       // ===== OVERRIDE GUARDS (Ghi đè các guards) =====
@@ -142,9 +153,7 @@ describe('TodosController (Integration)', () => {
         canActivate: jest.fn((context) => {
           const request = context.switchToHttp().getRequest();
           // Kiểm tra quyền: admin có thể truy cập tất cả, user chỉ truy cập todo của mình
-          return (
-            request.user?.role === 'admin' || request.user?.id === mockUser.id
-          );
+          return request.user?.role === 'admin' || request.user?.id === mockUser.id;
         }),
       })
       .compile();
@@ -406,9 +415,7 @@ describe('TodosController (Integration)', () => {
     // Setup trước mỗi test case
     beforeEach(() => {
       // Mock service method để trả về kết quả xóa thành công
-      jest
-        .spyOn(todosService, 'removeTodo')
-        .mockResolvedValue({ deleted: true });
+      jest.spyOn(todosService, 'removeTodo').mockResolvedValue({ deleted: true });
     });
 
     it('should delete todo successfully when user is owner', async () => {
@@ -448,10 +455,7 @@ describe('TodosController (Integration)', () => {
       // Test case này kiểm tra JWT authentication guard
       await request(app.getHttpServer()).get('/todos').expect(403); // Forbidden - Guard từ chối vì không có token
 
-      await request(app.getHttpServer())
-        .post('/todos')
-        .send({ title: 'Test Todo' })
-        .expect(403); // Forbidden - Guard từ chối vì không có token
+      await request(app.getHttpServer()).post('/todos').send({ title: 'Test Todo' }).expect(403); // Forbidden - Guard từ chối vì không có token
     });
 
     it('should reject requests with invalid JWT token', async () => {

@@ -9,41 +9,41 @@ export class FiltersMetaDto {
   @ApiProperty({
     description: 'Filter by completion status',
     example: 'true',
-    required: false
+    required: false,
   })
   isDone?: string;
 
   @ApiProperty({
     description: 'Search term used',
     example: 'typescript',
-    required: false
+    required: false,
   })
   search?: string;
 
   @ApiProperty({
     description: 'Filter from date',
     example: '2024-01-01T00:00:00.000Z',
-    required: false
+    required: false,
   })
   dateFrom?: string;
 
   @ApiProperty({
     description: 'Filter to date',
     example: '2024-12-31T23:59:59.999Z',
-    required: false
+    required: false,
   })
   dateTo?: string;
 
   @ApiProperty({
     description: 'Sort by field',
-    example: 'createdAt'
+    example: 'createdAt',
   })
   sortBy: string;
 
   @ApiProperty({
     description: 'Sort order',
     example: 'desc',
-    enum: ['asc', 'desc']
+    enum: ['asc', 'desc'],
   })
   sortOrder: 'asc' | 'desc';
 }
@@ -54,19 +54,19 @@ export class FiltersMetaDto {
 export class TodoPaginationResponseDto {
   @ApiProperty({
     description: 'List of todos',
-    type: [TodoResponseDto]
+    type: [TodoResponseDto],
   })
   todos: TodoResponseDto[];
 
   @ApiProperty({
     description: 'Pagination metadata',
-    type: PaginationMetaDto
+    type: PaginationMetaDto,
   })
   pagination: PaginationMetaDto;
 
   @ApiProperty({
     description: 'Filters metadata applied',
-    type: FiltersMetaDto
+    type: FiltersMetaDto,
   })
   filters: FiltersMetaDto;
 }

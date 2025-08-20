@@ -7,13 +7,13 @@ import { UserResponseDto } from '@/modules/users/dto/user-response.dto';
 export class RegisterResponseDto {
   @ApiProperty({
     description: 'Success message',
-    example: 'User registered successfully'
+    example: 'User registered successfully',
   })
   message: string;
 
   @ApiProperty({
     description: 'Created user information',
-    type: UserResponseDto
+    type: UserResponseDto,
   })
   user: UserResponseDto;
 }
@@ -24,7 +24,8 @@ export class RegisterResponseDto {
 export class LoginResponseDto {
   @ApiProperty({
     description: 'JWT access token',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoiam9obl9kb2UiLCJyb2xlIjoidXNlciIsImlhdCI6MTYzNjQ5NjAwMCwiZXhwIjoxNjM2NTgyNDAwfQ.example'
+    example:
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoiam9obl9kb2UiLCJyb2xlIjoidXNlciIsImlhdCI6MTYzNjQ5NjAwMCwiZXhwIjoxNjM2NTgyNDAwfQ.example',
   })
   access_token: string;
 }

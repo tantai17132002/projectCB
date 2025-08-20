@@ -8,13 +8,13 @@ import { PaginationMetaDto } from '@/common/dto/pagination.dto';
 export class UserPaginationResponseDto {
   @ApiProperty({
     description: 'List of users',
-    type: [UserResponseDto]
+    type: [UserResponseDto],
   })
   users: UserResponseDto[];
 
   @ApiProperty({
     description: 'Pagination metadata',
-    type: PaginationMetaDto
+    type: PaginationMetaDto,
   })
   pagination: PaginationMetaDto;
 }

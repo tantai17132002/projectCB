@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  ExecutionContext,
-  ForbiddenException,
-  BadRequestException,
-} from '@nestjs/common';
+import { ExecutionContext, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { SelfOrAdminGuard } from '@/common/guards/self-or-admin.guard';
 import { ADMIN_ROLE, USER_ROLE } from '@/common/constants/roles.constant';
 import { JwtUser } from '@/common/types/jwt-user.type';
@@ -92,18 +88,13 @@ describe('SelfOrAdminGuard', () => {
 
       // Act & Assert - Verify ném ForbiddenException
       expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
-      expect(() => guard.canActivate(mockContext)).toThrow(
-        'User not authenticated',
-      );
+      expect(() => guard.canActivate(mockContext)).toThrow('User not authenticated');
     });
 
     // ===== TEST: ID parameter validation =====
     it('should throw BadRequestException for invalid ID (NaN)', () => {
       // Arrange - Chuẩn bị scenario: ID không phải số
-      const mockContext = createMockExecutionContext(
-        mockRegularUser,
-        'invalid',
-      );
+      const mockContext = createMockExecutionContext(mockRegularUser, 'invalid');
 
       // Act & Assert - Verify ném BadRequestException
       expect(() => guard.canActivate(mockContext)).toThrow(BadRequestException);
@@ -230,10 +221,7 @@ describe('SelfOrAdminGuard', () => {
     it('should handle valid large ID numbers', () => {
       // Arrange - Chuẩn bị scenario: test với ID số lớn hợp lệ
       const userWithLargeId: JwtUser = { ...mockRegularUser, id: 1000000 };
-      const mockContext = createMockExecutionContext(
-        userWithLargeId,
-        '1000000',
-      );
+      const mockContext = createMockExecutionContext(userWithLargeId, '1000000');
 
       // Act - Kiểm tra quyền truy cập
       const result = guard.canActivate(mockContext);

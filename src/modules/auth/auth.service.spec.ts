@@ -7,6 +7,7 @@ import { UserService } from '@/modules/users/users.service';
 import { CreateUsersDto } from '@/modules/users/dto/create-users.dto';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { UsersEntity } from '@/modules/users/entity/users.entity';
+import { CustomLogger } from '@/common/logger/custom-logger.service';
 
 // Mock bcrypt để tránh gọi hàm hash thật
 jest.mock('bcryptjs');
@@ -68,6 +69,15 @@ describe('AuthService', () => {
             sign: jest.fn(),
           },
         },
+        {
+          provide: CustomLogger,
+          useValue: {
+            log: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -104,9 +114,7 @@ describe('AuthService', () => {
       const result = await service.validateUser(usernameOrEmail, password);
 
       // Assert - Kiểm tra kết quả
-      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(
-        usernameOrEmail,
-      );
+      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(usernameOrEmail);
       expect(bcrypt.compare).toHaveBeenCalledWith(password, hashedPassword);
       expect(result).toEqual({
         ...mockUser,
@@ -123,16 +131,14 @@ describe('AuthService', () => {
       userService.findByUsernameOrEmail.mockResolvedValue(null);
 
       // Act & Assert - Kiểm tra exception được throw
-      await expect(
-        service.validateUser(usernameOrEmail, password),
-      ).rejects.toThrow(UnauthorizedException);
-      await expect(
-        service.validateUser(usernameOrEmail, password),
-      ).rejects.toThrow('User not found');
-
-      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(
-        usernameOrEmail,
+      await expect(service.validateUser(usernameOrEmail, password)).rejects.toThrow(
+        UnauthorizedException,
       );
+      await expect(service.validateUser(usernameOrEmail, password)).rejects.toThrow(
+        'User not found',
+      );
+
+      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(usernameOrEmail);
       expect(bcrypt.compare).not.toHaveBeenCalled(); // Không gọi bcrypt vì user không tồn tại
     });
 
@@ -150,16 +156,14 @@ describe('AuthService', () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       // Act & Assert - Kiểm tra exception khi password sai
-      await expect(
-        service.validateUser(usernameOrEmail, password),
-      ).rejects.toThrow(UnauthorizedException);
-      await expect(
-        service.validateUser(usernameOrEmail, password),
-      ).rejects.toThrow('Wrong password');
-
-      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(
-        usernameOrEmail,
+      await expect(service.validateUser(usernameOrEmail, password)).rejects.toThrow(
+        UnauthorizedException,
       );
+      await expect(service.validateUser(usernameOrEmail, password)).rejects.toThrow(
+        'Wrong password',
+      );
+
+      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(usernameOrEmail);
       expect(bcrypt.compare).toHaveBeenCalledWith(password, hashedPassword);
     });
 
@@ -288,13 +292,8 @@ describe('AuthService', () => {
       const result = await service.processLogin(mockLoginDto);
 
       // Assert - Kiểm tra toàn bộ flow đăng nhập
-      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(
-        mockLoginDto.usernameOrEmail,
-      );
-      expect(bcrypt.compare).toHaveBeenCalledWith(
-        mockLoginDto.password,
-        hashedPassword,
-      );
+      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(mockLoginDto.usernameOrEmail);
+      expect(bcrypt.compare).toHaveBeenCalledWith(mockLoginDto.password, hashedPassword);
       expect(jwtService.sign).toHaveBeenCalledWith({
         sub: mockUser.id,
         username: mockUser.username,
@@ -310,13 +309,9 @@ describe('AuthService', () => {
       userService.findByUsernameOrEmail.mockResolvedValue(null);
 
       // Act & Assert - Kiểm tra exception khi thông tin đăng nhập sai
-      await expect(service.processLogin(mockLoginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.processLogin(mockLoginDto)).rejects.toThrow(UnauthorizedException);
 
-      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(
-        mockLoginDto.usernameOrEmail,
-      );
+      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(mockLoginDto.usernameOrEmail);
       expect(jwtService.sign).not.toHaveBeenCalled(); // Không tạo JWT khi đăng nhập thất bại
     });
 
@@ -341,13 +336,8 @@ describe('AuthService', () => {
       const result = await service.processLogin(loginWithEmail);
 
       // Assert - Kiểm tra kết quả
-      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(
-        'test@example.com',
-      );
-      expect(bcrypt.compare).toHaveBeenCalledWith(
-        'password123',
-        hashedPassword,
-      );
+      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith('test@example.com');
+      expect(bcrypt.compare).toHaveBeenCalledWith('password123', hashedPassword);
       expect(result).toEqual({
         access_token: mockToken,
       });
@@ -365,20 +355,11 @@ describe('AuthService', () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       // Act & Assert - Kiểm tra exception khi password sai
-      await expect(service.processLogin(mockLoginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.processLogin(mockLoginDto)).rejects.toThrow(
-        'Wrong password',
-      );
+      await expect(service.processLogin(mockLoginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.processLogin(mockLoginDto)).rejects.toThrow('Wrong password');
 
-      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(
-        mockLoginDto.usernameOrEmail,
-      );
-      expect(bcrypt.compare).toHaveBeenCalledWith(
-        mockLoginDto.password,
-        hashedPassword,
-      );
+      expect(userService.findByUsernameOrEmail).toHaveBeenCalledWith(mockLoginDto.usernameOrEmail);
+      expect(bcrypt.compare).toHaveBeenCalledWith(mockLoginDto.password, hashedPassword);
       expect(jwtService.sign).not.toHaveBeenCalled(); // Không tạo JWT khi password sai
     });
   });
@@ -410,9 +391,7 @@ describe('AuthService', () => {
       userService.createUser.mockRejectedValue(error);
 
       // Act & Assert - Kiểm tra lỗi được propagate lên
-      await expect(service.register(mockCreateUserDto)).rejects.toThrow(
-        'Username already exists',
-      );
+      await expect(service.register(mockCreateUserDto)).rejects.toThrow('Username already exists');
 
       expect(userService.createUser).toHaveBeenCalledWith(mockCreateUserDto);
     });
